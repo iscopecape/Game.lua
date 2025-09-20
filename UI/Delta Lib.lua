@@ -1281,17 +1281,21 @@ function DeltaLib:CreateWindow(title, size)
 				DropdownListStroke.Thickness = 2
 				DropdownListStroke.Parent = DropdownList
 
-				-- Enhanced scrolling frame
+				-- Enhanced scrolling frame with better scroll UI
 				local DropdownScrollFrame = Instance.new("ScrollingFrame")
 				DropdownScrollFrame.Name = "DropdownScrollFrame"
 				DropdownScrollFrame.Size = UDim2.new(1, -10, 1, -10)
 				DropdownScrollFrame.Position = UDim2.new(0, 5, 0, 5)
 				DropdownScrollFrame.BackgroundTransparency = 1
 				DropdownScrollFrame.BorderSizePixel = 0
-				DropdownScrollFrame.ScrollBarThickness = 8
+				DropdownScrollFrame.ScrollBarThickness = 10
 				DropdownScrollFrame.ScrollBarImageColor3 = Colors.NeonRed
-				DropdownScrollFrame.BottomImage = ""
-				DropdownScrollFrame.TopImage = ""
+				DropdownScrollFrame.ScrollBarImageTransparency = 0.3
+				DropdownScrollFrame.BottomImage = "rbxasset://textures/ui/Scroll/scroll-middle.png"
+				DropdownScrollFrame.TopImage = "rbxasset://textures/ui/Scroll/scroll-middle.png"
+				DropdownScrollFrame.MidImage = "rbxasset://textures/ui/Scroll/scroll-middle.png"
+				DropdownScrollFrame.ScrollingDirection = Enum.ScrollingDirection.Y
+				DropdownScrollFrame.VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar
 				DropdownScrollFrame.ZIndex = 101
 				DropdownScrollFrame.Parent = DropdownList
 
@@ -1368,7 +1372,7 @@ function DeltaLib:CreateWindow(title, size)
 					table.insert(OptionButtons, optionButton)
 				end
 
-				-- Enhanced toggle function with proper height calculation
+				-- Enhanced toggle function with proper scroll height calculation
 				local function ToggleDropdown()
 					if isAnimating then return end
 					isAnimating = true
@@ -1386,23 +1390,28 @@ function DeltaLib:CreateWindow(title, size)
 
 					if isOpen then
 						DropdownList.Visible = true
-						-- Calculate proper height based on number of options
-						local optionsHeight = math.min(#options * 38 + 16, 200) -- Fixed height calculation
+						-- Calculate proper height with scroll support - max 6 items visible
+						local maxVisibleItems = 6
+						local itemHeight = 38 -- 35 + 3 padding
+						local totalContentHeight = #options * itemHeight + 16 -- padding
+						local maxDropdownHeight = maxVisibleItems * itemHeight + 16
+						local finalHeight = math.min(totalContentHeight, maxDropdownHeight)
 						
 						-- Update container size to accommodate dropdown
 						TweenService:Create(DropdownContainer, TweenInfo.new(0.4, Enum.EasingStyle.Quart), {
-							Size = UDim2.new(1, 0, 0, 70 + optionsHeight)
+							Size = UDim2.new(1, 0, 0, 70 + finalHeight)
 						}):Play()
 
 						local listTween = TweenService:Create(
 							DropdownList,
 							TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
-							{Size = UDim2.new(1, 0, 0, optionsHeight)}
+							{Size = UDim2.new(1, 0, 0, finalHeight)}
 						)
 
 						listTween.Completed:Connect(function()
 							isAnimating = false
-							DropdownScrollFrame.CanvasSize = UDim2.new(0, 0, 0, DropdownOptionsLayout.AbsoluteContentSize.Y + 16)
+							-- Set canvas size for scrolling
+							DropdownScrollFrame.CanvasSize = UDim2.new(0, 0, 0, totalContentHeight)
 						end)
 
 						listTween:Play()
