@@ -755,90 +755,89 @@ function DeltaLib:CreateWindow(title, size)
 			function Section:AddLabel(labelText)
 				local LabelContainer = Instance.new("Frame")
 				LabelContainer.Name = "LabelContainer"
-				LabelContainer.Size = UDim2.new(1, 0, 0, 35) -- Increased height for better presence
+				LabelContainer.Size = UDim2.new(1, 0, 0, 40) -- Increased height for better presence
 				LabelContainer.BackgroundTransparency = 1
 				LabelContainer.Parent = SectionContent
 
-				-- Cool gradient background for labels
+				-- Cool holographic background effect
 				local LabelBackground = Instance.new("Frame")
 				LabelBackground.Name = "LabelBackground"
 				LabelBackground.Size = UDim2.new(1, 0, 1, 0)
-				LabelBackground.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+				LabelBackground.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 				LabelBackground.BorderSizePixel = 0
 				LabelBackground.Parent = LabelContainer
 
 				local LabelBackgroundCorner = Instance.new("UICorner")
-				LabelBackgroundCorner.CornerRadius = UDim.new(0, 8)
+				LabelBackgroundCorner.CornerRadius = UDim.new(0, 10)
 				LabelBackgroundCorner.Parent = LabelBackground
 
-				-- Subtle border with neon accent
+				-- Animated neon border effect
 				local LabelStroke = Instance.new("UIStroke")
 				LabelStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 				LabelStroke.Color = Colors.NeonRed
-				LabelStroke.Thickness = 1
-				LabelStroke.Transparency = 0.7
+				LabelStroke.Thickness = 2
+				LabelStroke.Transparency = 0.3
 				LabelStroke.Parent = LabelBackground
 
-				-- Cool gradient effect
+				-- Cool animated gradient effect
 				local LabelGradient = Instance.new("UIGradient")
 				LabelGradient.Color = ColorSequence.new{
-					ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 30, 35)),
-					ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 25))
+					ColorSequenceKeypoint.new(0, Color3.fromRGB(40, 20, 25)),
+					ColorSequenceKeypoint.new(0.5, Color3.fromRGB(25, 25, 30)),
+					ColorSequenceKeypoint.new(1, Color3.fromRGB(30, 20, 25))
 				}
-				LabelGradient.Rotation = 45
+				LabelGradient.Rotation = 0
 				LabelGradient.Parent = LabelBackground
 
-				-- Enhanced label text with better styling
+				-- Animate the gradient rotation for cool effect
+				spawn(function()
+					while LabelBackground.Parent do
+						for i = 0, 360, 2 do
+							if not LabelBackground.Parent then break end
+							LabelGradient.Rotation = i
+							wait(0.05)
+						end
+					end
+				end)
+
+				-- Enhanced label text with glow effect
 				local Label = Instance.new("TextLabel")
 				Label.Name = "Label"
 				Label.Size = UDim2.new(1, -20, 1, 0)
 				Label.Position = UDim2.new(0, 10, 0, 0)
 				Label.BackgroundTransparency = 1
 				Label.Text = labelText
-				Label.TextColor3 = Colors.Text
-				Label.TextSize = 14
-				Label.Font = Enum.Font.GothamSemibold
+				Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+				Label.TextSize = 16
+				Label.Font = Enum.Font.GothamBold
 				Label.TextXAlignment = Enum.TextXAlignment.Left
 				Label.TextYAlignment = Enum.TextYAlignment.Center
-				Label.Parent = LabelContainer
+				Label.Parent = LabelBackground
 
-				-- Cool accent line
-				local AccentLine = Instance.new("Frame")
-				AccentLine.Name = "AccentLine"
-				AccentLine.Size = UDim2.new(0, 3, 0.6, 0)
-				AccentLine.Position = UDim2.new(0, 5, 0.2, 0)
-				AccentLine.BackgroundColor3 = Colors.NeonRed
-				AccentLine.BorderSizePixel = 0
-				AccentLine.Parent = LabelContainer
+				-- Add text stroke for glow effect
+				local LabelTextStroke = Instance.new("UIStroke")
+				LabelTextStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
+				LabelTextStroke.Color = Colors.NeonRed
+				LabelTextStroke.Thickness = 1
+				LabelTextStroke.Transparency = 0.7
+				LabelTextStroke.Parent = Label
 
-				local AccentLineCorner = Instance.new("UICorner")
-				AccentLineCorner.CornerRadius = UDim.new(0, 2)
-				AccentLineCorner.Parent = AccentLine
+				-- Cool hover effect
+				local LabelClickArea = Instance.new("TextButton")
+				LabelClickArea.Name = "LabelClickArea"
+				LabelClickArea.Size = UDim2.new(1, 0, 1, 0)
+				LabelClickArea.BackgroundTransparency = 1
+				LabelClickArea.Text = ""
+				LabelClickArea.Parent = LabelContainer
 
-				-- Hover effects for interactivity
-				local LabelButton = Instance.new("TextButton")
-				LabelButton.Name = "LabelButton"
-				LabelButton.Size = UDim2.new(1, 0, 1, 0)
-				LabelButton.BackgroundTransparency = 1
-				LabelButton.Text = ""
-				LabelButton.Parent = LabelContainer
-
-				SafeConnect(LabelButton.MouseEnter, function()
-					TweenService:Create(LabelStroke, TweenInfo.new(0.3), {
-						Transparency = 0.3
-					}):Play()
-					TweenService:Create(AccentLine, TweenInfo.new(0.3), {
-						Size = UDim2.new(0, 4, 0.8, 0)
-					}):Play()
+				SafeConnect(LabelClickArea.MouseEnter, function()
+					TweenService:Create(LabelStroke, TweenInfo.new(0.3), {Transparency = 0}):Play()
+					TweenService:Create(LabelBackground, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(30, 25, 35)}):Play()
 				end)
 
-				SafeConnect(LabelButton.MouseLeave, function()
-					TweenService:Create(LabelStroke, TweenInfo.new(0.3), {
-						Transparency = 0.7
-					}):Play()
-					TweenService:Create(AccentLine, TweenInfo.new(0.3), {
-						Size = UDim2.new(0, 3, 0.6, 0)
-					}):Play()
+				SafeConnect(LabelClickArea.MouseLeave, function()
+					TweenService:Create(LabelStroke, TweenInfo.new(0.3), {Transparency = 0.3}):Play()
+					TweenService:Create(LabelBackground, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(20, 20, 25)}):Play()
 				end)
 
 				local LabelFunctions = {}
@@ -846,12 +845,6 @@ function DeltaLib:CreateWindow(title, size)
 				function LabelFunctions:SetText(newText)
 					pcall(function()
 						Label.Text = newText
-					end)
-				end
-
-				function LabelFunctions:SetColor(newColor)
-					pcall(function()
-						Label.TextColor3 = newColor
 					end)
 				end
 
@@ -864,35 +857,59 @@ function DeltaLib:CreateWindow(title, size)
 
 				local ButtonContainer = Instance.new("Frame")
 				ButtonContainer.Name = "ButtonContainer"
-				ButtonContainer.Size = UDim2.new(1, 0, 0, 24) -- Smaller button
+				ButtonContainer.Size = UDim2.new(1, 0, 0, 35)
 				ButtonContainer.BackgroundTransparency = 1
 				ButtonContainer.Parent = SectionContent
 
 				local Button = Instance.new("TextButton")
 				Button.Name = "Button"
 				Button.Size = UDim2.new(1, 0, 1, 0)
-				Button.BackgroundColor3 = Colors.DarkBackground
+				Button.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
 				Button.BorderSizePixel = 0
 				Button.Text = buttonText
 				Button.TextColor3 = Colors.Text
-				Button.TextSize = 12 -- Smaller text size
-				Button.Font = Enum.Font.Gotham
+				Button.TextSize = 14
+				Button.Font = Enum.Font.GothamBold
 				Button.Parent = ButtonContainer
 
 				local ButtonCorner = Instance.new("UICorner")
-				ButtonCorner.CornerRadius = UDim.new(0, 3) -- Smaller corner radius
+				ButtonCorner.CornerRadius = UDim.new(0, 8)
 				ButtonCorner.Parent = Button
 
-				-- Button Effects
+				-- Enhanced button border
+				local ButtonStroke = Instance.new("UIStroke")
+				ButtonStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+				ButtonStroke.Color = Color3.fromRGB(60, 60, 70)
+				ButtonStroke.Thickness = 2
+				ButtonStroke.Parent = Button
+
+				-- Cool gradient background
+				local ButtonGradient = Instance.new("UIGradient")
+				ButtonGradient.Color = ColorSequence.new{
+					ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 30, 35)),
+					ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 25))
+				}
+				ButtonGradient.Rotation = 90
+				ButtonGradient.Parent = Button
+
+				-- Enhanced button effects
 				SafeConnect(Button.MouseEnter, function()
-					Button.BackgroundColor3 = Colors.NeonRed
+					TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = Colors.NeonRed}):Play()
+					TweenService:Create(ButtonStroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(255, 100, 120)}):Play()
+					TweenService:Create(Button, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
 				end)
 
 				SafeConnect(Button.MouseLeave, function()
-					Button.BackgroundColor3 = Colors.DarkBackground
+					TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 25, 30)}):Play()
+					TweenService:Create(ButtonStroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(60, 60, 70)}):Play()
+					TweenService:Create(Button, TweenInfo.new(0.2), {TextColor3 = Colors.Text}):Play()
 				end)
 
 				SafeConnect(Button.MouseButton1Click, function()
+					-- Click animation
+					TweenService:Create(Button, TweenInfo.new(0.1), {Size = UDim2.new(0.98, 0, 0.9, 0)}):Play()
+					wait(0.1)
+					TweenService:Create(Button, TweenInfo.new(0.1), {Size = UDim2.new(1, 0, 1, 0)}):Play()
 					SafeCall(callback)
 				end)
 
@@ -914,26 +931,28 @@ function DeltaLib:CreateWindow(title, size)
 
 				local ToggleContainer = Instance.new("Frame")
 				ToggleContainer.Name = "ToggleContainer"
-				ToggleContainer.Size = UDim2.new(1, 0, 0, 20) -- Smaller toggle
+				ToggleContainer.Size = UDim2.new(1, 0, 0, 30)
 				ToggleContainer.BackgroundTransparency = 1
 				ToggleContainer.Parent = SectionContent
 
 				local ToggleLabel = Instance.new("TextLabel")
 				ToggleLabel.Name = "ToggleLabel"
-				ToggleLabel.Size = UDim2.new(1, -40, 1, 0)
+				ToggleLabel.Size = UDim2.new(1, -50, 1, 0)
 				ToggleLabel.BackgroundTransparency = 1
 				ToggleLabel.Text = toggleText
 				ToggleLabel.TextColor3 = Colors.Text
-				ToggleLabel.TextSize = 12 -- Smaller text size
-				ToggleLabel.Font = Enum.Font.Gotham
+				ToggleLabel.TextSize = 14
+				ToggleLabel.Font = Enum.Font.GothamSemibold
 				ToggleLabel.TextXAlignment = Enum.TextXAlignment.Left
+				ToggleLabel.TextYAlignment = Enum.TextYAlignment.Center
 				ToggleLabel.Parent = ToggleContainer
 
+				-- Enhanced toggle button with better styling
 				local ToggleButton = Instance.new("Frame")
 				ToggleButton.Name = "ToggleButton"
-				ToggleButton.Size = UDim2.new(0, 32, 0, 16) -- Smaller toggle button
-				ToggleButton.Position = UDim2.new(1, -32, 0, 2)
-				ToggleButton.BackgroundColor3 = Colors.DarkBackground
+				ToggleButton.Size = UDim2.new(0, 45, 0, 22)
+				ToggleButton.Position = UDim2.new(1, -45, 0.5, -11)
+				ToggleButton.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 				ToggleButton.BorderSizePixel = 0
 				ToggleButton.Parent = ToggleContainer
 
@@ -941,17 +960,33 @@ function DeltaLib:CreateWindow(title, size)
 				ToggleButtonCorner.CornerRadius = UDim.new(1, 0)
 				ToggleButtonCorner.Parent = ToggleButton
 
+				-- Enhanced toggle border
+				local ToggleStroke = Instance.new("UIStroke")
+				ToggleStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+				ToggleStroke.Color = Color3.fromRGB(60, 60, 70)
+				ToggleStroke.Thickness = 2
+				ToggleStroke.Parent = ToggleButton
+
+				-- Enhanced toggle circle with glow effect
 				local ToggleCircle = Instance.new("Frame")
 				ToggleCircle.Name = "ToggleCircle"
-				ToggleCircle.Size = UDim2.new(0, 12, 0, 12) -- Smaller toggle circle
-				ToggleCircle.Position = UDim2.new(0, 2, 0, 2)
-				ToggleCircle.BackgroundColor3 = Colors.Text
+				ToggleCircle.Size = UDim2.new(0, 16, 0, 16)
+				ToggleCircle.Position = UDim2.new(0, 3, 0.5, -8)
+				ToggleCircle.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
 				ToggleCircle.BorderSizePixel = 0
 				ToggleCircle.Parent = ToggleButton
 
 				local ToggleCircleCorner = Instance.new("UICorner")
 				ToggleCircleCorner.CornerRadius = UDim.new(1, 0)
 				ToggleCircleCorner.Parent = ToggleCircle
+
+				-- Circle glow effect
+				local CircleStroke = Instance.new("UIStroke")
+				CircleStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+				CircleStroke.Color = Color3.fromRGB(255, 255, 255)
+				CircleStroke.Thickness = 1
+				CircleStroke.Transparency = 0.8
+				CircleStroke.Parent = ToggleCircle
 
 				-- Make the entire container clickable
 				local ToggleClickArea = Instance.new("TextButton")
@@ -964,15 +999,21 @@ function DeltaLib:CreateWindow(title, size)
 				-- Toggle State
 				local Enabled = default
 
-				-- Update toggle appearance based on state
+				-- Enhanced toggle animation
 				local function UpdateToggle()
 					pcall(function()
 						if Enabled then
-							TweenService:Create(ToggleButton, TweenInfo.new(0.2), {BackgroundColor3 = Colors.NeonRed}):Play()
-							TweenService:Create(ToggleCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 18, 0, 2)}):Play()
+							TweenService:Create(ToggleButton, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {BackgroundColor3 = Colors.NeonRed}):Play()
+							TweenService:Create(ToggleStroke, TweenInfo.new(0.3), {Color = Color3.fromRGB(255, 100, 120)}):Play()
+							TweenService:Create(ToggleCircle, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {Position = UDim2.new(0, 26, 0.5, -8)}):Play()
+							TweenService:Create(ToggleCircle, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+							TweenService:Create(CircleStroke, TweenInfo.new(0.3), {Transparency = 0.3}):Play()
 						else
-							TweenService:Create(ToggleButton, TweenInfo.new(0.2), {BackgroundColor3 = Colors.DarkBackground}):Play()
-							TweenService:Create(ToggleCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0, 2)}):Play()
+							TweenService:Create(ToggleButton, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {BackgroundColor3 = Color3.fromRGB(30, 30, 35)}):Play()
+							TweenService:Create(ToggleStroke, TweenInfo.new(0.3), {Color = Color3.fromRGB(60, 60, 70)}):Play()
+							TweenService:Create(ToggleCircle, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {Position = UDim2.new(0, 3, 0.5, -8)}):Play()
+							TweenService:Create(ToggleCircle, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(200, 200, 200)}):Play()
+							TweenService:Create(CircleStroke, TweenInfo.new(0.3), {Transparency = 0.8}):Play()
 						end
 					end)
 				end
@@ -980,11 +1021,20 @@ function DeltaLib:CreateWindow(title, size)
 				-- Set initial state
 				UpdateToggle()
 
-				-- Toggle Logic
+				-- Toggle Logic with enhanced feedback
 				SafeConnect(ToggleClickArea.MouseButton1Click, function()
 					Enabled = not Enabled
 					UpdateToggle()
 					SafeCall(callback, Enabled)
+				end)
+
+				-- Hover effects
+				SafeConnect(ToggleClickArea.MouseEnter, function()
+					TweenService:Create(ToggleLabel, TweenInfo.new(0.2), {TextColor3 = Colors.NeonRed}):Play()
+				end)
+
+				SafeConnect(ToggleClickArea.MouseLeave, function()
+					TweenService:Create(ToggleLabel, TweenInfo.new(0.2), {TextColor3 = Colors.Text}):Play()
 				end)
 
 				local ToggleFunctions = {}
@@ -1140,10 +1190,10 @@ function DeltaLib:CreateWindow(title, size)
 				default = default or options[1] or ""
 				callback = callback or function() end
 
-				-- Main dropdown container with better spacing
+				-- Main dropdown container with proper height calculation
 				local DropdownContainer = Instance.new("Frame")
 				DropdownContainer.Name = "DropdownContainer"
-				DropdownContainer.Size = UDim2.new(1, 0, 0, 60)
+				DropdownContainer.Size = UDim2.new(1, 0, 0, 70) -- Fixed base height
 				DropdownContainer.BackgroundTransparency = 1
 				DropdownContainer.Parent = SectionContent
 
@@ -1160,96 +1210,85 @@ function DeltaLib:CreateWindow(title, size)
 				DropdownLabel.TextYAlignment = Enum.TextYAlignment.Center
 				DropdownLabel.Parent = DropdownContainer
 
-				-- Cleaner dropdown button with better visual feedback
+				-- Enhanced dropdown button with better visual feedback
 				local DropdownButton = Instance.new("TextButton")
 				DropdownButton.Name = "DropdownButton"
-				DropdownButton.Size = UDim2.new(1, 0, 0, 35)
+				DropdownButton.Size = UDim2.new(1, 0, 0, 40) -- Increased height for better visibility
 				DropdownButton.Position = UDim2.new(0, 0, 0, 25)
-				DropdownButton.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+				DropdownButton.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
 				DropdownButton.BorderSizePixel = 0
 				DropdownButton.Text = ""
 				DropdownButton.Parent = DropdownContainer
 
 				local DropdownButtonCorner = Instance.new("UICorner")
-				DropdownButtonCorner.CornerRadius = UDim.new(0, 8)
+				DropdownButtonCorner.CornerRadius = UDim.new(0, 10)
 				DropdownButtonCorner.Parent = DropdownButton
 
-				-- Clear border with better contrast
+				-- Enhanced border with better contrast
 				local DropdownButtonStroke = Instance.new("UIStroke")
 				DropdownButtonStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-				DropdownButtonStroke.Color = Color3.fromRGB(60, 60, 70)
+				DropdownButtonStroke.Color = Color3.fromRGB(70, 70, 80)
 				DropdownButtonStroke.Thickness = 2
 				DropdownButtonStroke.Parent = DropdownButton
 
-				-- Clear selected value display
+				-- Enhanced selected value display
 				local SelectedTextBox = Instance.new("TextLabel")
 				SelectedTextBox.Name = "SelectedTextBox"
-				SelectedTextBox.Size = UDim2.new(1, -50, 1, 0)
-				SelectedTextBox.Position = UDim2.new(0, 15, 0, 0)
+				SelectedTextBox.Size = UDim2.new(1, -60, 1, 0)
+				SelectedTextBox.Position = UDim2.new(0, 20, 0, 0)
 				SelectedTextBox.BackgroundTransparency = 1
 				SelectedTextBox.Text = default
-				SelectedTextBox.TextColor3 = Colors.Text
-				SelectedTextBox.TextSize = 15
-				SelectedTextBox.Font = Enum.Font.Gotham
+				SelectedTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+				SelectedTextBox.TextSize = 16
+				SelectedTextBox.Font = Enum.Font.GothamSemibold
 				SelectedTextBox.TextXAlignment = Enum.TextXAlignment.Left
 				SelectedTextBox.TextYAlignment = Enum.TextYAlignment.Center
 				SelectedTextBox.Parent = DropdownButton
 
-				-- Clear dropdown arrow with better positioning
+				-- Enhanced dropdown arrow with better positioning
 				local DropdownArrow = Instance.new("TextLabel")
 				DropdownArrow.Name = "DropdownArrow"
-				DropdownArrow.Size = UDim2.new(0, 30, 1, 0)
-				DropdownArrow.Position = UDim2.new(1, -30, 0, 0)
+				DropdownArrow.Size = UDim2.new(0, 40, 1, 0)
+				DropdownArrow.Position = UDim2.new(1, -40, 0, 0)
 				DropdownArrow.BackgroundTransparency = 1
 				DropdownArrow.Text = "▼"
 				DropdownArrow.TextColor3 = Colors.NeonRed
-				DropdownArrow.TextSize = 14
+				DropdownArrow.TextSize = 16
 				DropdownArrow.Font = Enum.Font.GothamBold
 				DropdownArrow.TextXAlignment = Enum.TextXAlignment.Center
 				DropdownArrow.TextYAlignment = Enum.TextYAlignment.Center
 				DropdownArrow.Parent = DropdownButton
 
-				-- Cleaner dropdown list with better visual hierarchy
+				-- Enhanced dropdown list with proper height calculation
 				local DropdownList = Instance.new("Frame")
 				DropdownList.Name = "DropdownList"
-				DropdownList.Size = UDim2.new(1, 0, 0, 0)
-				DropdownList.Position = UDim2.new(0, 0, 0, 60)
-				DropdownList.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+				DropdownList.Size = UDim2.new(1, 0, 0, 0) -- Start with 0 height
+				DropdownList.Position = UDim2.new(0, 0, 0, 70) -- Position below the button
+				DropdownList.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 				DropdownList.BorderSizePixel = 0
 				DropdownList.Visible = false
 				DropdownList.ZIndex = 100
 				DropdownList.Parent = DropdownContainer
 
 				local DropdownListCorner = Instance.new("UICorner")
-				DropdownListCorner.CornerRadius = UDim.new(0, 8)
+				DropdownListCorner.CornerRadius = UDim.new(0, 10)
 				DropdownListCorner.Parent = DropdownList
 
-				-- Clear dropdown list border
+				-- Enhanced dropdown list border
 				local DropdownListStroke = Instance.new("UIStroke")
 				DropdownListStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 				DropdownListStroke.Color = Colors.NeonRed
 				DropdownListStroke.Thickness = 2
 				DropdownListStroke.Parent = DropdownList
 
-				-- Shadow effect for depth
-				local DropdownShadow = Instance.new("ImageLabel")
-				DropdownShadow.Name = "DropdownShadow"
-				DropdownShadow.Size = UDim2.new(1, 6, 1, 6)
-				DropdownShadow.Position = UDim2.new(0, -3, 0, -3)
-				DropdownShadow.BackgroundTransparency = 1
-				DropdownShadow.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
-				DropdownShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-				DropdownShadow.ImageTransparency = 0.8
-				DropdownShadow.ZIndex = 99
-				DropdownShadow.Parent = DropdownList
-
+				-- Enhanced scrolling frame
 				local DropdownScrollFrame = Instance.new("ScrollingFrame")
 				DropdownScrollFrame.Name = "DropdownScrollFrame"
 				DropdownScrollFrame.Size = UDim2.new(1, -10, 1, -10)
 				DropdownScrollFrame.Position = UDim2.new(0, 5, 0, 5)
 				DropdownScrollFrame.BackgroundTransparency = 1
 				DropdownScrollFrame.BorderSizePixel = 0
-				DropdownScrollFrame.ScrollBarThickness = 6
+				DropdownScrollFrame.ScrollBarThickness = 8
 				DropdownScrollFrame.ScrollBarImageColor3 = Colors.NeonRed
 				DropdownScrollFrame.BottomImage = ""
 				DropdownScrollFrame.TopImage = ""
@@ -1258,44 +1297,44 @@ function DeltaLib:CreateWindow(title, size)
 
 				local DropdownOptionsLayout = Instance.new("UIListLayout")
 				DropdownOptionsLayout.SortOrder = Enum.SortOrder.LayoutOrder
-				DropdownOptionsLayout.Padding = UDim.new(0, 2)
+				DropdownOptionsLayout.Padding = UDim.new(0, 3)
 				DropdownOptionsLayout.Parent = DropdownScrollFrame
 
 				local DropdownOptionsPadding = Instance.new("UIPadding")
-				DropdownOptionsPadding.PaddingLeft = UDim.new(0, 8)
-				DropdownOptionsPadding.PaddingRight = UDim.new(0, 8)
-				DropdownOptionsPadding.PaddingTop = UDim.new(0, 5)
-				DropdownOptionsPadding.PaddingBottom = UDim.new(0, 5)
+				DropdownOptionsPadding.PaddingLeft = UDim.new(0, 10)
+				DropdownOptionsPadding.PaddingRight = UDim.new(0, 10)
+				DropdownOptionsPadding.PaddingTop = UDim.new(0, 8)
+				DropdownOptionsPadding.PaddingBottom = UDim.new(0, 8)
 				DropdownOptionsPadding.Parent = DropdownScrollFrame
 
 				local isOpen = false
 				local isAnimating = false
 				local OptionButtons = {}
 
-				-- Create cleaner option buttons
+				-- Enhanced option button creation
 				local function CreateOptionButton(option, index)
 					local OptionButton = Instance.new("TextButton")
 					OptionButton.Name = "OptionButton_" .. index
-					OptionButton.Size = UDim2.new(1, 0, 0, 30)
-					OptionButton.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+					OptionButton.Size = UDim2.new(1, 0, 0, 35) -- Increased height for better readability
+					OptionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 					OptionButton.BorderSizePixel = 0
 					OptionButton.Text = option
-					OptionButton.TextColor3 = Colors.Text
-					OptionButton.TextSize = 14
-					OptionButton.Font = Enum.Font.Gotham
+					OptionButton.TextColor3 = Color3.fromRGB(220, 220, 220)
+					OptionButton.TextSize = 15
+					OptionButton.Font = Enum.Font.GothamSemibold
 					OptionButton.TextXAlignment = Enum.TextXAlignment.Left
 					OptionButton.ZIndex = 102
 					OptionButton.Parent = DropdownScrollFrame
 
 					local OptionButtonCorner = Instance.new("UICorner")
-					OptionButtonCorner.CornerRadius = UDim.new(0, 6)
+					OptionButtonCorner.CornerRadius = UDim.new(0, 8)
 					OptionButtonCorner.Parent = OptionButton
 
 					local OptionButtonPadding = Instance.new("UIPadding")
-					OptionButtonPadding.PaddingLeft = UDim.new(0, 12)
+					OptionButtonPadding.PaddingLeft = UDim.new(0, 15)
 					OptionButtonPadding.Parent = OptionButton
 
-					-- Clear hover effects
+					-- Enhanced hover effects with better visual feedback
 					SafeConnect(OptionButton.MouseEnter, function()
 						TweenService:Create(OptionButton, TweenInfo.new(0.2), {
 							BackgroundColor3 = Colors.NeonRed
@@ -1307,10 +1346,10 @@ function DeltaLib:CreateWindow(title, size)
 
 					SafeConnect(OptionButton.MouseLeave, function()
 						TweenService:Create(OptionButton, TweenInfo.new(0.2), {
-							BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+							BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 						}):Play()
 						TweenService:Create(OptionButton, TweenInfo.new(0.2), {
-							TextColor3 = Colors.Text
+							TextColor3 = Color3.fromRGB(220, 220, 220)
 						}):Play()
 					end)
 
@@ -1329,24 +1368,31 @@ function DeltaLib:CreateWindow(title, size)
 					table.insert(OptionButtons, optionButton)
 				end
 
+				-- Enhanced toggle function with proper height calculation
 				local function ToggleDropdown()
 					if isAnimating then return end
 					isAnimating = true
 					isOpen = not isOpen
 
-					-- Clear arrow animation
-					TweenService:Create(DropdownArrow, TweenInfo.new(0.3), {
+					-- Enhanced arrow animation
+					TweenService:Create(DropdownArrow, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {
 						Rotation = isOpen and 180 or 0
 					}):Play()
 
-					-- Clear border color change
+					-- Enhanced border color change
 					TweenService:Create(DropdownButtonStroke, TweenInfo.new(0.3), {
-						Color = isOpen and Colors.NeonRed or Color3.fromRGB(60, 60, 70)
+						Color = isOpen and Colors.NeonRed or Color3.fromRGB(70, 70, 80)
 					}):Play()
 
 					if isOpen then
 						DropdownList.Visible = true
-						local optionsHeight = math.min(#options * 32 + 10, 160)
+						-- Calculate proper height based on number of options
+						local optionsHeight = math.min(#options * 38 + 16, 200) -- Fixed height calculation
+						
+						-- Update container size to accommodate dropdown
+						TweenService:Create(DropdownContainer, TweenInfo.new(0.4, Enum.EasingStyle.Quart), {
+							Size = UDim2.new(1, 0, 0, 70 + optionsHeight)
+						}):Play()
 
 						local listTween = TweenService:Create(
 							DropdownList,
@@ -1356,11 +1402,16 @@ function DeltaLib:CreateWindow(title, size)
 
 						listTween.Completed:Connect(function()
 							isAnimating = false
-							DropdownScrollFrame.CanvasSize = UDim2.new(0, 0, 0, DropdownOptionsLayout.AbsoluteContentSize.Y + 10)
+							DropdownScrollFrame.CanvasSize = UDim2.new(0, 0, 0, DropdownOptionsLayout.AbsoluteContentSize.Y + 16)
 						end)
 
 						listTween:Play()
 					else
+						-- Reset container size
+						TweenService:Create(DropdownContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {
+							Size = UDim2.new(1, 0, 0, 70)
+						}):Play()
+
 						local listTween = TweenService:Create(
 							DropdownList,
 							TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.In),
@@ -1378,11 +1429,14 @@ function DeltaLib:CreateWindow(title, size)
 
 				SafeConnect(DropdownButton.MouseButton1Click, ToggleDropdown)
 
-				-- Hover effects for main button
+				-- Enhanced hover effects for main button
 				SafeConnect(DropdownButton.MouseEnter, function()
 					if not isOpen then
 						TweenService:Create(DropdownButtonStroke, TweenInfo.new(0.2), {
-							Color = Color3.fromRGB(80, 80, 90)
+							Color = Color3.fromRGB(100, 100, 110)
+						}):Play()
+						TweenService:Create(DropdownButton, TweenInfo.new(0.2), {
+							BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 						}):Play()
 					end
 				end)
@@ -1390,7 +1444,10 @@ function DeltaLib:CreateWindow(title, size)
 				SafeConnect(DropdownButton.MouseLeave, function()
 					if not isOpen then
 						TweenService:Create(DropdownButtonStroke, TweenInfo.new(0.2), {
-							Color = Color3.fromRGB(60, 60, 70)
+							Color = Color3.fromRGB(70, 70, 80)
+						}):Play()
+						TweenService:Create(DropdownButton, TweenInfo.new(0.2), {
+							BackgroundColor3 = Color3.fromRGB(25, 25, 30)
 						}):Play()
 					end
 				end)
@@ -1421,7 +1478,7 @@ function DeltaLib:CreateWindow(title, size)
 						table.insert(OptionButtons, optionButton)
 					end
 
-					DropdownScrollFrame.CanvasSize = UDim2.new(0, 0, 0, DropdownOptionsLayout.AbsoluteContentSize.Y + 10)
+					DropdownScrollFrame.CanvasSize = UDim2.new(0, 0, 0, DropdownOptionsLayout.AbsoluteContentSize.Y + 16)
 					SelectedTextBox.Text = default
 				end
 
