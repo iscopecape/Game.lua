@@ -755,26 +755,103 @@ function DeltaLib:CreateWindow(title, size)
 			function Section:AddLabel(labelText)
 				local LabelContainer = Instance.new("Frame")
 				LabelContainer.Name = "LabelContainer"
-				LabelContainer.Size = UDim2.new(1, 0, 0, 16) -- Smaller label
+				LabelContainer.Size = UDim2.new(1, 0, 0, 35) -- Increased height for better presence
 				LabelContainer.BackgroundTransparency = 1
 				LabelContainer.Parent = SectionContent
 
+				-- Cool gradient background for labels
+				local LabelBackground = Instance.new("Frame")
+				LabelBackground.Name = "LabelBackground"
+				LabelBackground.Size = UDim2.new(1, 0, 1, 0)
+				LabelBackground.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+				LabelBackground.BorderSizePixel = 0
+				LabelBackground.Parent = LabelContainer
+
+				local LabelBackgroundCorner = Instance.new("UICorner")
+				LabelBackgroundCorner.CornerRadius = UDim.new(0, 8)
+				LabelBackgroundCorner.Parent = LabelBackground
+
+				-- Subtle border with neon accent
+				local LabelStroke = Instance.new("UIStroke")
+				LabelStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+				LabelStroke.Color = Colors.NeonRed
+				LabelStroke.Thickness = 1
+				LabelStroke.Transparency = 0.7
+				LabelStroke.Parent = LabelBackground
+
+				-- Cool gradient effect
+				local LabelGradient = Instance.new("UIGradient")
+				LabelGradient.Color = ColorSequence.new{
+					ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 30, 35)),
+					ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 25))
+				}
+				LabelGradient.Rotation = 45
+				LabelGradient.Parent = LabelBackground
+
+				-- Enhanced label text with better styling
 				local Label = Instance.new("TextLabel")
 				Label.Name = "Label"
-				Label.Size = UDim2.new(1, 0, 1, 0)
+				Label.Size = UDim2.new(1, -20, 1, 0)
+				Label.Position = UDim2.new(0, 10, 0, 0)
 				Label.BackgroundTransparency = 1
 				Label.Text = labelText
 				Label.TextColor3 = Colors.Text
-				Label.TextSize = 12 -- Smaller text size
-				Label.Font = Enum.Font.Gotham
+				Label.TextSize = 14
+				Label.Font = Enum.Font.GothamSemibold
 				Label.TextXAlignment = Enum.TextXAlignment.Left
+				Label.TextYAlignment = Enum.TextYAlignment.Center
 				Label.Parent = LabelContainer
+
+				-- Cool accent line
+				local AccentLine = Instance.new("Frame")
+				AccentLine.Name = "AccentLine"
+				AccentLine.Size = UDim2.new(0, 3, 0.6, 0)
+				AccentLine.Position = UDim2.new(0, 5, 0.2, 0)
+				AccentLine.BackgroundColor3 = Colors.NeonRed
+				AccentLine.BorderSizePixel = 0
+				AccentLine.Parent = LabelContainer
+
+				local AccentLineCorner = Instance.new("UICorner")
+				AccentLineCorner.CornerRadius = UDim.new(0, 2)
+				AccentLineCorner.Parent = AccentLine
+
+				-- Hover effects for interactivity
+				local LabelButton = Instance.new("TextButton")
+				LabelButton.Name = "LabelButton"
+				LabelButton.Size = UDim2.new(1, 0, 1, 0)
+				LabelButton.BackgroundTransparency = 1
+				LabelButton.Text = ""
+				LabelButton.Parent = LabelContainer
+
+				SafeConnect(LabelButton.MouseEnter, function()
+					TweenService:Create(LabelStroke, TweenInfo.new(0.3), {
+						Transparency = 0.3
+					}):Play()
+					TweenService:Create(AccentLine, TweenInfo.new(0.3), {
+						Size = UDim2.new(0, 4, 0.8, 0)
+					}):Play()
+				end)
+
+				SafeConnect(LabelButton.MouseLeave, function()
+					TweenService:Create(LabelStroke, TweenInfo.new(0.3), {
+						Transparency = 0.7
+					}):Play()
+					TweenService:Create(AccentLine, TweenInfo.new(0.3), {
+						Size = UDim2.new(0, 3, 0.6, 0)
+					}):Play()
+				end)
 
 				local LabelFunctions = {}
 
 				function LabelFunctions:SetText(newText)
 					pcall(function()
 						Label.Text = newText
+					end)
+				end
+
+				function LabelFunctions:SetColor(newColor)
+					pcall(function()
+						Label.TextColor3 = newColor
 					end)
 				end
 
@@ -1063,91 +1140,108 @@ function DeltaLib:CreateWindow(title, size)
 				default = default or options[1] or ""
 				callback = callback or function() end
 
-				-- Enhanced dropdown container
+				-- Main dropdown container with better spacing
 				local DropdownContainer = Instance.new("Frame")
 				DropdownContainer.Name = "DropdownContainer"
-				DropdownContainer.Size = UDim2.new(1, 0, 0, 50)
+				DropdownContainer.Size = UDim2.new(1, 0, 0, 60)
 				DropdownContainer.BackgroundTransparency = 1
 				DropdownContainer.Parent = SectionContent
 
-				-- Better dropdown label styling
+				-- Clear dropdown label with better typography
 				local DropdownLabel = Instance.new("TextLabel")
 				DropdownLabel.Name = "DropdownLabel"
-				DropdownLabel.Size = UDim2.new(1, 0, 0, 20)
+				DropdownLabel.Size = UDim2.new(1, 0, 0, 25)
 				DropdownLabel.BackgroundTransparency = 1
 				DropdownLabel.Text = dropdownText
 				DropdownLabel.TextColor3 = Colors.Text
-				DropdownLabel.TextSize = 15
-				DropdownLabel.Font = Enum.Font.GothamSemibold
+				DropdownLabel.TextSize = 16
+				DropdownLabel.Font = Enum.Font.GothamBold
 				DropdownLabel.TextXAlignment = Enum.TextXAlignment.Left
+				DropdownLabel.TextYAlignment = Enum.TextYAlignment.Center
 				DropdownLabel.Parent = DropdownContainer
 
-				-- Enhanced dropdown button with better visual feedback
+				-- Cleaner dropdown button with better visual feedback
 				local DropdownButton = Instance.new("TextButton")
 				DropdownButton.Name = "DropdownButton"
-				DropdownButton.Size = UDim2.new(1, 0, 0, 30)
-				DropdownButton.Position = UDim2.new(0, 0, 0, 20)
-				DropdownButton.BackgroundColor3 = Colors.DarkBackground
+				DropdownButton.Size = UDim2.new(1, 0, 0, 35)
+				DropdownButton.Position = UDim2.new(0, 0, 0, 25)
+				DropdownButton.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 				DropdownButton.BorderSizePixel = 0
 				DropdownButton.Text = ""
 				DropdownButton.Parent = DropdownContainer
 
 				local DropdownButtonCorner = Instance.new("UICorner")
-				DropdownButtonCorner.CornerRadius = UDim.new(0, 6)
+				DropdownButtonCorner.CornerRadius = UDim.new(0, 8)
 				DropdownButtonCorner.Parent = DropdownButton
 
-				-- Enhanced dropdown border with hover effects
+				-- Clear border with better contrast
 				local DropdownButtonStroke = Instance.new("UIStroke")
 				DropdownButtonStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-				DropdownButtonStroke.Color = Colors.Border
+				DropdownButtonStroke.Color = Color3.fromRGB(60, 60, 70)
 				DropdownButtonStroke.Thickness = 2
 				DropdownButtonStroke.Parent = DropdownButton
 
-				-- Dropdown value display with better styling
+				-- Clear selected value display
 				local SelectedTextBox = Instance.new("TextLabel")
 				SelectedTextBox.Name = "SelectedTextBox"
-				SelectedTextBox.Size = UDim2.new(1, -60, 1, 0)
+				SelectedTextBox.Size = UDim2.new(1, -50, 1, 0)
 				SelectedTextBox.Position = UDim2.new(0, 15, 0, 0)
 				SelectedTextBox.BackgroundTransparency = 1
 				SelectedTextBox.Text = default
 				SelectedTextBox.TextColor3 = Colors.Text
-				SelectedTextBox.TextSize = 14
+				SelectedTextBox.TextSize = 15
 				SelectedTextBox.Font = Enum.Font.Gotham
 				SelectedTextBox.TextXAlignment = Enum.TextXAlignment.Left
+				SelectedTextBox.TextYAlignment = Enum.TextYAlignment.Center
 				SelectedTextBox.Parent = DropdownButton
 
-				-- Enhanced dropdown arrow with better positioning
-				local DropdownArrow = Instance.new("ImageLabel")
+				-- Clear dropdown arrow with better positioning
+				local DropdownArrow = Instance.new("TextLabel")
 				DropdownArrow.Name = "DropdownArrow"
-				DropdownArrow.Size = UDim2.new(0, 20, 0, 20)
-				DropdownArrow.Position = UDim2.new(1, -30, 0.5, -10)
+				DropdownArrow.Size = UDim2.new(0, 30, 1, 0)
+				DropdownArrow.Position = UDim2.new(1, -30, 0, 0)
 				DropdownArrow.BackgroundTransparency = 1
-				DropdownArrow.Image = "rbxassetid://6031094670"
-				DropdownArrow.ImageColor3 = Colors.NeonRed
-				DropdownArrow.Rotation = 270
+				DropdownArrow.Text = "▼"
+				DropdownArrow.TextColor3 = Colors.NeonRed
+				DropdownArrow.TextSize = 14
+				DropdownArrow.Font = Enum.Font.GothamBold
+				DropdownArrow.TextXAlignment = Enum.TextXAlignment.Center
+				DropdownArrow.TextYAlignment = Enum.TextYAlignment.Center
 				DropdownArrow.Parent = DropdownButton
 
-				-- Enhanced dropdown list with better styling
+				-- Cleaner dropdown list with better visual hierarchy
 				local DropdownList = Instance.new("Frame")
 				DropdownList.Name = "DropdownList"
 				DropdownList.Size = UDim2.new(1, 0, 0, 0)
-				DropdownList.Position = UDim2.new(0, 0, 0, 50)
-				DropdownList.BackgroundColor3 = Colors.DarkBackground
+				DropdownList.Position = UDim2.new(0, 0, 0, 60)
+				DropdownList.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
 				DropdownList.BorderSizePixel = 0
 				DropdownList.Visible = false
 				DropdownList.ZIndex = 100
 				DropdownList.Parent = DropdownContainer
 
 				local DropdownListCorner = Instance.new("UICorner")
-				DropdownListCorner.CornerRadius = UDim.new(0, 6)
+				DropdownListCorner.CornerRadius = UDim.new(0, 8)
 				DropdownListCorner.Parent = DropdownList
 
-				-- Enhanced dropdown list border
+				-- Clear dropdown list border
 				local DropdownListStroke = Instance.new("UIStroke")
 				DropdownListStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 				DropdownListStroke.Color = Colors.NeonRed
 				DropdownListStroke.Thickness = 2
 				DropdownListStroke.Parent = DropdownList
+
+				-- Shadow effect for depth
+				local DropdownShadow = Instance.new("ImageLabel")
+				DropdownShadow.Name = "DropdownShadow"
+				DropdownShadow.Size = UDim2.new(1, 6, 1, 6)
+				DropdownShadow.Position = UDim2.new(0, -3, 0, -3)
+				DropdownShadow.BackgroundTransparency = 1
+				DropdownShadow.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
+				DropdownShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+				DropdownShadow.ImageTransparency = 0.8
+				DropdownShadow.ZIndex = 99
+				DropdownShadow.Parent = DropdownList
 
 				local DropdownScrollFrame = Instance.new("ScrollingFrame")
 				DropdownScrollFrame.Name = "DropdownScrollFrame"
@@ -1155,7 +1249,7 @@ function DeltaLib:CreateWindow(title, size)
 				DropdownScrollFrame.Position = UDim2.new(0, 5, 0, 5)
 				DropdownScrollFrame.BackgroundTransparency = 1
 				DropdownScrollFrame.BorderSizePixel = 0
-				DropdownScrollFrame.ScrollBarThickness = 4
+				DropdownScrollFrame.ScrollBarThickness = 6
 				DropdownScrollFrame.ScrollBarImageColor3 = Colors.NeonRed
 				DropdownScrollFrame.BottomImage = ""
 				DropdownScrollFrame.TopImage = ""
@@ -1164,186 +1258,139 @@ function DeltaLib:CreateWindow(title, size)
 
 				local DropdownOptionsLayout = Instance.new("UIListLayout")
 				DropdownOptionsLayout.SortOrder = Enum.SortOrder.LayoutOrder
-				DropdownOptionsLayout.Padding = UDim.new(0, 5)
+				DropdownOptionsLayout.Padding = UDim.new(0, 2)
 				DropdownOptionsLayout.Parent = DropdownScrollFrame
 
 				local DropdownOptionsPadding = Instance.new("UIPadding")
-				DropdownOptionsPadding.PaddingLeft = UDim.new(0, 5)
-				DropdownOptionsPadding.PaddingRight = UDim.new(0, 5)
+				DropdownOptionsPadding.PaddingLeft = UDim.new(0, 8)
+				DropdownOptionsPadding.PaddingRight = UDim.new(0, 8)
 				DropdownOptionsPadding.PaddingTop = UDim.new(0, 5)
 				DropdownOptionsPadding.PaddingBottom = UDim.new(0, 5)
 				DropdownOptionsPadding.Parent = DropdownScrollFrame
 
 				local isOpen = false
 				local isAnimating = false
+				local OptionButtons = {}
+
+				-- Create cleaner option buttons
+				local function CreateOptionButton(option, index)
+					local OptionButton = Instance.new("TextButton")
+					OptionButton.Name = "OptionButton_" .. index
+					OptionButton.Size = UDim2.new(1, 0, 0, 30)
+					OptionButton.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+					OptionButton.BorderSizePixel = 0
+					OptionButton.Text = option
+					OptionButton.TextColor3 = Colors.Text
+					OptionButton.TextSize = 14
+					OptionButton.Font = Enum.Font.Gotham
+					OptionButton.TextXAlignment = Enum.TextXAlignment.Left
+					OptionButton.ZIndex = 102
+					OptionButton.Parent = DropdownScrollFrame
+
+					local OptionButtonCorner = Instance.new("UICorner")
+					OptionButtonCorner.CornerRadius = UDim.new(0, 6)
+					OptionButtonCorner.Parent = OptionButton
+
+					local OptionButtonPadding = Instance.new("UIPadding")
+					OptionButtonPadding.PaddingLeft = UDim.new(0, 12)
+					OptionButtonPadding.Parent = OptionButton
+
+					-- Clear hover effects
+					SafeConnect(OptionButton.MouseEnter, function()
+						TweenService:Create(OptionButton, TweenInfo.new(0.2), {
+							BackgroundColor3 = Colors.NeonRed
+						}):Play()
+						TweenService:Create(OptionButton, TweenInfo.new(0.2), {
+							TextColor3 = Color3.fromRGB(255, 255, 255)
+						}):Play()
+					end)
+
+					SafeConnect(OptionButton.MouseLeave, function()
+						TweenService:Create(OptionButton, TweenInfo.new(0.2), {
+							BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+						}):Play()
+						TweenService:Create(OptionButton, TweenInfo.new(0.2), {
+							TextColor3 = Colors.Text
+						}):Play()
+					end)
+
+					SafeConnect(OptionButton.MouseButton1Click, function()
+						SelectedTextBox.Text = option
+						SafeCall(callback, option)
+						ToggleDropdown()
+					end)
+
+					return OptionButton
+				end
+
+				-- Initialize options
+				for i, option in ipairs(options) do
+					local optionButton = CreateOptionButton(option, i)
+					table.insert(OptionButtons, optionButton)
+				end
 
 				local function ToggleDropdown()
 					if isAnimating then return end
 					isAnimating = true
 					isOpen = not isOpen
 
+					-- Clear arrow animation
 					TweenService:Create(DropdownArrow, TweenInfo.new(0.3), {
-						Rotation = isOpen and 90 or 270
+						Rotation = isOpen and 180 or 0
 					}):Play()
 
+					-- Clear border color change
 					TweenService:Create(DropdownButtonStroke, TweenInfo.new(0.3), {
-						Color = isOpen and Colors.NeonRed or Colors.Border
+						Color = isOpen and Colors.NeonRed or Color3.fromRGB(60, 60, 70)
 					}):Play()
 
 					if isOpen then
 						DropdownList.Visible = true
-
-						local optionsHeight = math.min(#options * 30 + 10, 150)
+						local optionsHeight = math.min(#options * 32 + 10, 160)
 
 						local listTween = TweenService:Create(
 							DropdownList,
-							TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+							TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
 							{Size = UDim2.new(1, 0, 0, optionsHeight)}
 						)
 
-						local containerTween = TweenService:Create(
-							DropdownContainer,
-							TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
-							{Size = UDim2.new(1, 0, 0, 40 + optionsHeight)}
-						)
-
-						listTween:Play()
-						containerTween:Play()
-
-						DropdownScrollFrame.CanvasSize = UDim2.new(0, 0, 0, DropdownOptionsLayout.AbsoluteContentSize.Y + 10)
-
 						listTween.Completed:Connect(function()
 							isAnimating = false
+							DropdownScrollFrame.CanvasSize = UDim2.new(0, 0, 0, DropdownOptionsLayout.AbsoluteContentSize.Y + 10)
 						end)
+
+						listTween:Play()
 					else
 						local listTween = TweenService:Create(
 							DropdownList,
-							TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+							TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.In),
 							{Size = UDim2.new(1, 0, 0, 0)}
 						)
-
-						local containerTween = TweenService:Create(
-							DropdownContainer,
-							TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
-							{Size = UDim2.new(1, 0, 0, 40)}
-						)
-
-						listTween:Play()
-						containerTween:Play()
 
 						listTween.Completed:Connect(function()
 							DropdownList.Visible = false
 							isAnimating = false
 						end)
+
+						listTween:Play()
 					end
 				end
 
-				local OptionButtons = {}
+				SafeConnect(DropdownButton.MouseButton1Click, ToggleDropdown)
 
-				local function CreateOptionButton(option, index)
-					local OptionButton = Instance.new("TextButton")
-					OptionButton.Name = "Option_" .. option
-					OptionButton.Size = UDim2.new(1, 0, 0, 25)
-					OptionButton.BackgroundColor3 = Colors.DarkBackground
-					OptionButton.BorderSizePixel = 0
-					OptionButton.Text = ""
-					OptionButton.LayoutOrder = index
-					OptionButton.ZIndex = 102
-					OptionButton.Parent = DropdownScrollFrame
-
-					local OptionButtonCorner = Instance.new("UICorner")
-					OptionButtonCorner.CornerRadius = UDim.new(0, 4)
-					OptionButtonCorner.Parent = OptionButton
-
-					local OptionText = Instance.new("TextLabel")
-					OptionText.Name = "OptionText"
-					OptionText.Size = UDim2.new(1, -10, 1, 0)
-					OptionText.Position = UDim2.new(0, 10, 0, 0)
-					OptionText.BackgroundTransparency = 1
-					OptionText.Text = option
-					OptionText.TextColor3 = Colors.Text
-					OptionText.TextSize = 14
-					OptionText.Font = Enum.Font.Gotham
-					OptionText.TextXAlignment = Enum.TextXAlignment.Left
-					OptionText.ZIndex = 103
-					OptionText.Parent = OptionButton
-
-					OptionButton.MouseEnter:Connect(function()
-						TweenService:Create(OptionButton, TweenInfo.new(0.2), {
-							BackgroundColor3 = Colors.NeonRed
-						}):Play()
-					end)
-
-					OptionButton.MouseLeave:Connect(function()
-						TweenService:Create(OptionButton, TweenInfo.new(0.2), {
-							BackgroundColor3 = Colors.DarkBackground
-						}):Play()
-					end)
-
-					OptionButton.MouseButton1Click:Connect(function()
-						SelectedTextBox.Text = option
-						ToggleDropdown()
-						callback(option)
-
-						TweenService:Create(OptionText, TweenInfo.new(0.2, Enum.EasingStyle.Sine, Enum.EasingDirection.Out, 0, true), {
-							TextColor3 = Colors.NeonRed
-						}):Play()
-					end)
-
-					return OptionButton
-				end
-
-				for i, option in ipairs(options) do
-					local optionButton = CreateOptionButton(option, i)
-					table.insert(OptionButtons, optionButton)
-				end
-
-				DropdownButton.MouseButton1Click:Connect(ToggleDropdown)
-
-				local globalClickConnection
-				globalClickConnection = UserInputService.InputBegan:Connect(function(input)
-					if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-						if not isOpen then return end
-
-						local mousePos = UserInputService:GetMouseLocation()
-
-						local inDropdownButton = (mousePos.X >= DropdownButton.AbsolutePosition.X and
-							mousePos.X <= DropdownButton.AbsolutePosition.X + DropdownButton.AbsoluteSize.X and
-							mousePos.Y >= DropdownButton.AbsolutePosition.Y and
-							mousePos.Y <= DropdownButton.AbsolutePosition.Y + DropdownButton.AbsoluteSize.Y)
-
-						local inDropdownList = false
-						if DropdownList.Visible then
-							inDropdownList = (mousePos.X >= DropdownList.AbsolutePosition.X and
-								mousePos.X <= DropdownList.AbsolutePosition.X + DropdownList.AbsoluteSize.X and
-								mousePos.Y >= DropdownList.AbsolutePosition.Y and
-								mousePos.Y <= DropdownList.AbsolutePosition.Y + DropdownList.AbsoluteSize.Y)
-						end
-
-						if not inDropdownButton and not inDropdownList and not isAnimating then
-							ToggleDropdown()
-						end
-					end
-				end)
-
-				DropdownContainer.AncestryChanged:Connect(function(_, parent)
-					if not parent then
-						globalClickConnection:Disconnect()
-					end
-				end)
-
-				DropdownButton.MouseEnter:Connect(function()
+				-- Hover effects for main button
+				SafeConnect(DropdownButton.MouseEnter, function()
 					if not isOpen then
-						TweenService:Create(DropdownButtonStroke, TweenInfo.new(0.3), {
-							Color = Color3.fromRGB(100, 100, 100)
+						TweenService:Create(DropdownButtonStroke, TweenInfo.new(0.2), {
+							Color = Color3.fromRGB(80, 80, 90)
 						}):Play()
 					end
 				end)
 
-				DropdownButton.MouseLeave:Connect(function()
+				SafeConnect(DropdownButton.MouseLeave, function()
 					if not isOpen then
-						TweenService:Create(DropdownButtonStroke, TweenInfo.new(0.3), {
-							Color = Colors.Border
+						TweenService:Create(DropdownButtonStroke, TweenInfo.new(0.2), {
+							Color = Color3.fromRGB(60, 60, 70)
 						}):Play()
 					end
 				end)
@@ -1375,50 +1422,43 @@ function DeltaLib:CreateWindow(title, size)
 					end
 
 					DropdownScrollFrame.CanvasSize = UDim2.new(0, 0, 0, DropdownOptionsLayout.AbsoluteContentSize.Y + 10)
-
 					SelectedTextBox.Text = default
-
-					if isOpen then
-						local optionsHeight = math.min(#options * 30 + 10, 150)
-						DropdownList.Size = UDim2.new(1, 0, 0, optionsHeight)
-						DropdownContainer.Size = UDim2.new(1, 0, 0, 40 + optionsHeight)
-					end
 				end
 
 				return DropdownFunctions
 			end
 
-			-- Enhanced textbox with icon support
-			function Section:AddTextBox(boxText, placeholder, default, callback, iconId)
+			-- Enhanced textbox without icons as requested
+			function Section:AddTextBox(boxText, placeholder, default, callback)
 				placeholder = placeholder or ""
 				default = default or ""
 				callback = callback or function() end
-				iconId = iconId or "rbxassetid://7733717447" -- Default search icon
 
 				local TextBoxContainer = Instance.new("Frame")
 				TextBoxContainer.Name = "TextBoxContainer"
-				TextBoxContainer.Size = UDim2.new(1, 0, 0, 45)
+				TextBoxContainer.Size = UDim2.new(1, 0, 0, 50)
 				TextBoxContainer.BackgroundTransparency = 1
 				TextBoxContainer.Parent = SectionContent
 
-				-- Enhanced textbox label
+				-- Clean textbox label
 				local TextBoxLabel = Instance.new("TextLabel")
 				TextBoxLabel.Name = "TextBoxLabel"
-				TextBoxLabel.Size = UDim2.new(1, 0, 0, 20)
+				TextBoxLabel.Size = UDim2.new(1, 0, 0, 25)
 				TextBoxLabel.BackgroundTransparency = 1
 				TextBoxLabel.Text = boxText
 				TextBoxLabel.TextColor3 = Colors.Text
-				TextBoxLabel.TextSize = 15
+				TextBoxLabel.TextSize = 16
 				TextBoxLabel.Font = Enum.Font.GothamSemibold
 				TextBoxLabel.TextXAlignment = Enum.TextXAlignment.Left
+				TextBoxLabel.TextYAlignment = Enum.TextYAlignment.Center
 				TextBoxLabel.Parent = TextBoxContainer
 
-				-- Enhanced textbox with icon
+				-- Clean textbox without icon
 				local TextBox = Instance.new("TextBox")
 				TextBox.Name = "TextBox"
 				TextBox.Size = UDim2.new(1, 0, 0, 25)
-				TextBox.Position = UDim2.new(0, 0, 0, 20)
-				TextBox.BackgroundColor3 = Colors.DarkBackground
+				TextBox.Position = UDim2.new(0, 0, 0, 25)
+				TextBox.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 				TextBox.BorderSizePixel = 0
 				TextBox.PlaceholderText = placeholder
 				TextBox.Text = default
@@ -1430,41 +1470,28 @@ function DeltaLib:CreateWindow(title, size)
 				TextBox.ClearTextOnFocus = false
 				TextBox.Parent = TextBoxContainer
 
-				-- Textbox icon
-				local TextBoxIcon = Instance.new("ImageLabel")
-				TextBoxIcon.Name = "TextBoxIcon"
-				TextBoxIcon.Size = UDim2.new(0, 16, 0, 16)
-				TextBoxIcon.Position = UDim2.new(1, -25, 0.5, -8)
-				TextBoxIcon.BackgroundTransparency = 1
-				TextBoxIcon.Image = iconId
-				TextBoxIcon.ImageColor3 = Colors.SubText
-				TextBoxIcon.Parent = TextBox
-
-				-- Enhanced textbox padding to accommodate icon
+				-- Simple padding without icon space
 				local TextBoxPadding = Instance.new("UIPadding")
 				TextBoxPadding.PaddingLeft = UDim.new(0, 12)
-				TextBoxPadding.PaddingRight = UDim.new(0, 35) -- Space for icon
+				TextBoxPadding.PaddingRight = UDim.new(0, 12)
 				TextBoxPadding.Parent = TextBox
 
 				local TextBoxCorner = Instance.new("UICorner")
-				TextBoxCorner.CornerRadius = UDim.new(0, 6)
+				TextBoxCorner.CornerRadius = UDim.new(0, 8)
 				TextBoxCorner.Parent = TextBox
 
-				-- Enhanced textbox border
+				-- Clean textbox border
 				local TextBoxStroke = Instance.new("UIStroke")
 				TextBoxStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-				TextBoxStroke.Color = Colors.Border
+				TextBoxStroke.Color = Color3.fromRGB(60, 60, 70)
 				TextBoxStroke.Thickness = 2
 				TextBoxStroke.Parent = TextBox
 
-				-- Enhanced focus effects
+				-- Focus effects
 				SafeConnect(TextBox.Focused, function()
 					pcall(function()
 						TweenService:Create(TextBoxStroke, TweenInfo.new(0.2), {
 							Color = Colors.NeonRed
-						}):Play()
-						TweenService:Create(TextBoxIcon, TweenInfo.new(0.2), {
-							ImageColor3 = Colors.NeonRed
 						}):Play()
 					end)
 				end)
@@ -1472,20 +1499,17 @@ function DeltaLib:CreateWindow(title, size)
 				SafeConnect(TextBox.FocusLost, function(enterPressed)
 					pcall(function()
 						TweenService:Create(TextBoxStroke, TweenInfo.new(0.2), {
-							Color = Colors.Border
-						}):Play()
-						TweenService:Create(TextBoxIcon, TweenInfo.new(0.2), {
-							ImageColor3 = Colors.SubText
+							Color = Color3.fromRGB(60, 60, 70)
 						}):Play()
 						SafeCall(callback, TextBox.Text, enterPressed)
 					end)
 				end)
 
-				-- Hover effects for textbox
+				-- Hover effects
 				SafeConnect(TextBox.MouseEnter, function()
 					if not TextBox:IsFocused() then
 						TweenService:Create(TextBoxStroke, TweenInfo.new(0.2), {
-							Color = Colors.SubText
+							Color = Color3.fromRGB(80, 80, 90)
 						}):Play()
 					end
 				end)
@@ -1493,7 +1517,7 @@ function DeltaLib:CreateWindow(title, size)
 				SafeConnect(TextBox.MouseLeave, function()
 					if not TextBox:IsFocused() then
 						TweenService:Create(TextBoxStroke, TweenInfo.new(0.2), {
-							Color = Colors.Border
+							Color = Color3.fromRGB(60, 60, 70)
 						}):Play()
 					end
 				end)
@@ -1509,12 +1533,6 @@ function DeltaLib:CreateWindow(title, size)
 
 				function TextBoxFunctions:GetText()
 					return TextBox.Text
-				end
-
-				function TextBoxFunctions:SetIcon(newIconId)
-					pcall(function()
-						TextBoxIcon.Image = newIconId
-					end)
 				end
 
 				return TextBoxFunctions
