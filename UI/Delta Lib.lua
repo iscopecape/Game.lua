@@ -1,12 +1,12 @@
 -- DeltaLib UI Library - Improved with error handling and smaller UI
 local DeltaLib = {}
-local UserInputService = cloneref(game:GetService("UserInputService")) 
-local TweenService = cloneref(game:GetService("TweenService")) 
-local Players = cloneref(game:GetService("Players")) 
+local UserInputService = cloneref(game:GetService("UserInputService"))
+local TweenService = cloneref(game:GetService("TweenService"))
+local Players = cloneref(game:GetService("Players"))
 local Player = Players.LocalPlayer
-local RunService = cloneref(game:GetService("RunService")) 
-local TextService = cloneref(game:GetService("TextService")) 
-local CoreGui = cloneref(game:GetService("CoreGui")) 
+local RunService = cloneref(game:GetService("RunService"))
+local TextService = cloneref(game:GetService("TextService"))
+local CoreGui = cloneref(game:GetService("CoreGui"))
 
 -- Helper functions for error handling
 local function SafeCall(func, ...)
@@ -34,17 +34,18 @@ local function SafeConnect(signal, callback)
 	end)
 end
 
--- Colors
+-- Enhanced Color Scheme with better contrast and readability
 local Colors = {
-	Background = Color3.fromRGB(25, 25, 25),
-	DarkBackground = Color3.fromRGB(15, 15, 15),
-	LightBackground = Color3.fromRGB(35, 35, 35),
-	NeonRed = Color3.fromRGB(255, 0, 60),
-	DarkNeonRed = Color3.fromRGB(200, 0, 45),
-	LightNeonRed = Color3.fromRGB(255, 50, 90),
-	Text = Color3.fromRGB(255, 255, 255),
-	SubText = Color3.fromRGB(200, 200, 200),
-	Border = Color3.fromRGB(50, 50, 50)
+	Background = Color3.fromRGB(15, 15, 15), -- Darker background for better contrast
+	LightBackground = Color3.fromRGB(25, 25, 25), -- Slightly lighter for sections
+	DarkBackground = Color3.fromRGB(18, 18, 18), -- Input backgrounds
+	Text = Color3.fromRGB(255, 255, 255), -- Pure white for better readability
+	SubText = Color3.fromRGB(180, 180, 180), -- Lighter gray for better contrast
+	NeonRed = Color3.fromRGB(255, 64, 64), -- Brighter red for better visibility
+	Border = Color3.fromRGB(45, 45, 45), -- Lighter border for definition
+	Success = Color3.fromRGB(64, 255, 64), -- Green for success states
+	Warning = Color3.fromRGB(255, 196, 64), -- Orange for warnings
+	Hover = Color3.fromRGB(35, 35, 35) -- Hover state color
 }
 
 -- Improved Draggable Function with Delta Movement and Error Handling
@@ -528,32 +529,62 @@ function DeltaLib:CreateWindow(title, size)
 	local SelectedTab = nil
 
 	-- Create Tab Function
-	function Window:CreateTab(tabName)
+	function Window:CreateTab(tabName, iconId)
 		local Tab = {}
+		iconId = iconId or "rbxassetid://7733717447" -- Default icon
 
-		-- Tab Button
+		-- Tab Button with enhanced styling
 		local TabButton = Instance.new("TextButton")
 		TabButton.Name = tabName.."Button"
 
-		-- Use pcall to safely get text size
-		local textWidth = 80 -- Default width
+		-- Calculate width including icon space
+		local textWidth = 100 -- Default width with icon
 		pcall(function()
-			textWidth = TextService:GetTextSize(tabName, 12, Enum.Font.GothamSemibold, Vector2.new(math.huge, 20)).X + 16
+			textWidth = TextService:GetTextSize(tabName, 13, Enum.Font.GothamSemibold, Vector2.new(math.huge, 20)).X + 40 -- Extra space for icon
 		end)
 
-		TabButton.Size = UDim2.new(0, textWidth, 1, -6) -- Smaller tab button
-		TabButton.Position = UDim2.new(0, 0, 0, 3) -- Centered vertically
+		TabButton.Size = UDim2.new(0, textWidth, 1, -4)
+		TabButton.Position = UDim2.new(0, 0, 0, 2)
 		TabButton.BackgroundColor3 = Colors.DarkBackground
 		TabButton.BorderSizePixel = 0
-		TabButton.Text = tabName
-		TabButton.TextColor3 = Colors.SubText
-		TabButton.TextSize = 12 -- Smaller text size
-		TabButton.Font = Enum.Font.GothamSemibold
+		TabButton.Text = ""
 		TabButton.Parent = TabButtons
 
 		local TabButtonCorner = Instance.new("UICorner")
-		TabButtonCorner.CornerRadius = UDim.new(0, 3) -- Smaller corner radius
+		TabButtonCorner.CornerRadius = UDim.new(0, 6)
 		TabButtonCorner.Parent = TabButton
+
+		-- Added gradient background for tabs
+		local TabGradient = Instance.new("UIGradient")
+		TabGradient.Color = ColorSequence.new{
+			ColorSequenceKeypoint.new(0, Colors.DarkBackground),
+			ColorSequenceKeypoint.new(1, Colors.LightBackground)
+		}
+		TabGradient.Rotation = 90
+		TabGradient.Parent = TabButton
+
+		-- Tab icon
+		local TabIcon = Instance.new("ImageLabel")
+		TabIcon.Name = "TabIcon"
+		TabIcon.Size = UDim2.new(0, 16, 0, 16)
+		TabIcon.Position = UDim2.new(0, 8, 0.5, -8)
+		TabIcon.BackgroundTransparency = 1
+		TabIcon.Image = iconId
+		TabIcon.ImageColor3 = Colors.SubText
+		TabIcon.Parent = TabButton
+
+		-- Tab text label with better positioning
+		local TabLabel = Instance.new("TextLabel")
+		TabLabel.Name = "TabLabel"
+		TabLabel.Size = UDim2.new(1, -32, 1, 0)
+		TabLabel.Position = UDim2.new(0, 28, 0, 0)
+		TabLabel.BackgroundTransparency = 1
+		TabLabel.Text = tabName
+		TabLabel.TextColor3 = Colors.SubText
+		TabLabel.TextSize = 13
+		TabLabel.Font = Enum.Font.GothamSemibold
+		TabLabel.TextXAlignment = Enum.TextXAlignment.Left
+		TabLabel.Parent = TabButton
 
 		-- Tab Content
 		local TabContent = Instance.new("ScrollingFrame")
@@ -584,21 +615,23 @@ function DeltaLib:CreateWindow(title, size)
 			end)
 		end)
 
-		-- Tab Selection Logic with error handling
+		-- Enhanced tab selection with icon color changes
 		SafeConnect(TabButton.MouseButton1Click, function()
 			pcall(function()
 				if SelectedTab then
 					-- Deselect current tab
 					SelectedTab.Button.BackgroundColor3 = Colors.DarkBackground
-					SelectedTab.Button.TextColor3 = Colors.SubText
+					SelectedTab.Icon.ImageColor3 = Colors.SubText
+					SelectedTab.Label.TextColor3 = Colors.SubText
 					SelectedTab.Content.Visible = false
 				end
 
-				-- Select new tab
+				-- Select new tab with enhanced styling
 				TabButton.BackgroundColor3 = Colors.NeonRed
-				TabButton.TextColor3 = Colors.Text
+				TabIcon.ImageColor3 = Colors.Text
+				TabLabel.TextColor3 = Colors.Text
 				TabContent.Visible = true
-				SelectedTab = {Button = TabButton, Content = TabContent}
+				SelectedTab = {Button = TabButton, Content = TabContent, Icon = TabIcon, Label = TabLabel}
 
 				-- Scroll to make the selected tab visible
 				local buttonPosition = TabButton.AbsolutePosition.X - TabScrollFrame.AbsolutePosition.X
@@ -628,45 +661,62 @@ function DeltaLib:CreateWindow(title, size)
 		-- If this is the first tab, select it
 		if #Tabs == 1 then
 			TabButton.BackgroundColor3 = Colors.NeonRed
-			TabButton.TextColor3 = Colors.Text
+			TabIcon.ImageColor3 = Colors.Text
+			TabLabel.TextColor3 = Colors.Text
 			TabContent.Visible = true
-			SelectedTab = {Button = TabButton, Content = TabContent}
+			SelectedTab = {Button = TabButton, Content = TabContent, Icon = TabIcon, Label = TabLabel}
 		end
 
-		-- Section Creation Function
+		-- Enhanced section creation with better typography
 		function Tab:CreateSection(sectionName)
 			local Section = {}
 
-			-- Section Container
+			-- Section Container with improved styling
 			local SectionContainer = Instance.new("Frame")
 			SectionContainer.Name = sectionName.."Section"
-			SectionContainer.Size = UDim2.new(1, 0, 0, 25) -- Will be resized based on content
+			SectionContainer.Size = UDim2.new(1, 0, 0, 35) -- Taller header
 			SectionContainer.BackgroundColor3 = Colors.LightBackground
 			SectionContainer.BorderSizePixel = 0
 			SectionContainer.Parent = TabContent
 
 			local SectionCorner = Instance.new("UICorner")
-			SectionCorner.CornerRadius = UDim.new(0, 3) -- Smaller corner radius
+			SectionCorner.CornerRadius = UDim.new(0, 8)
 			SectionCorner.Parent = SectionContainer
 
-			-- Section Title
-			local SectionTitle = Instance.new("TextLabel")
-			SectionTitle.Name = "SectionTitle"
-			SectionTitle.Size = UDim2.new(1, -8, 0, 20) -- Smaller title
-			SectionTitle.Position = UDim2.new(0, 8, 0, 0)
-			SectionTitle.BackgroundTransparency = 1
-			SectionTitle.Text = sectionName
-			SectionTitle.TextColor3 = Colors.NeonRed
-			SectionTitle.TextSize = 12 -- Smaller text size
-			SectionTitle.Font = Enum.Font.GothamBold
-			SectionTitle.TextXAlignment = Enum.TextXAlignment.Left
-			SectionTitle.Parent = SectionContainer
+			-- Enhanced section border
+			local SectionStroke = Instance.new("UIStroke")
+			SectionStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+			SectionStroke.Color = Colors.Border
+			SectionStroke.Thickness = 1
+			SectionStroke.Parent = SectionContainer
+
+			-- Section header with better typography
+			local SectionHeader = Instance.new("TextLabel")
+			SectionHeader.Name = "SectionHeader"
+			SectionHeader.Size = UDim2.new(1, -16, 0, 35)
+			SectionHeader.Position = UDim2.new(0, 16, 0, 0)
+			SectionHeader.BackgroundTransparency = 1
+			SectionHeader.Text = sectionName
+			SectionHeader.TextColor3 = Colors.Text
+			SectionHeader.TextSize = 16
+			SectionHeader.Font = Enum.Font.GothamBold
+			SectionHeader.TextXAlignment = Enum.TextXAlignment.Left
+			SectionHeader.Parent = SectionContainer
+
+			-- Section divider line
+			local SectionDivider = Instance.new("Frame")
+			SectionDivider.Name = "SectionDivider"
+			SectionDivider.Size = UDim2.new(1, -32, 0, 1)
+			SectionDivider.Position = UDim2.new(0, 16, 1, -1)
+			SectionDivider.BackgroundColor3 = Colors.NeonRed
+			SectionDivider.BorderSizePixel = 0
+			SectionDivider.Parent = SectionContainer
 
 			-- Section Content with Scrolling
 			local SectionScrollFrame = Instance.new("ScrollingFrame")
 			SectionScrollFrame.Name = "SectionScrollFrame"
 			SectionScrollFrame.Size = UDim2.new(1, -16, 0, 80) -- Initial height, will be adjusted
-			SectionScrollFrame.Position = UDim2.new(0, 8, 0, 20)
+			SectionScrollFrame.Position = UDim2.new(0, 8, 0, 35) -- Position below the header
 			SectionScrollFrame.BackgroundTransparency = 1
 			SectionScrollFrame.BorderSizePixel = 0
 			SectionScrollFrame.ScrollBarThickness = 2
@@ -697,7 +747,7 @@ function DeltaLib:CreateWindow(title, size)
 					-- Adjust the section height (capped at 150 for scrolling)
 					local newHeight = math.min(contentHeight, 150) -- Smaller max height
 					SectionScrollFrame.Size = UDim2.new(1, -16, 0, newHeight)
-					SectionContainer.Size = UDim2.new(1, 0, 0, newHeight + 28) -- +28 for the title
+					SectionContainer.Size = UDim2.new(1, 0, 0, newHeight + 35 + 1) -- +35 for header, +1 for divider
 				end)
 			end)
 
@@ -1006,33 +1056,36 @@ function DeltaLib:CreateWindow(title, size)
 				return SliderFunctions
 			end
 
+			-- Enhanced dropdown with better styling and animations
 			function Section:AddDropdown(dropdownText, options, default, callback)
 				local DropdownFunctions = {}
 				options = options or {}
 				default = default or options[1] or ""
 				callback = callback or function() end
 
-				-- Create the main dropdown container
+				-- Enhanced dropdown container
 				local DropdownContainer = Instance.new("Frame")
 				DropdownContainer.Name = "DropdownContainer"
-				DropdownContainer.Size = UDim2.new(1, 0, 0, 40)
+				DropdownContainer.Size = UDim2.new(1, 0, 0, 50)
 				DropdownContainer.BackgroundTransparency = 1
 				DropdownContainer.Parent = SectionContent
 
+				-- Better dropdown label styling
 				local DropdownLabel = Instance.new("TextLabel")
 				DropdownLabel.Name = "DropdownLabel"
 				DropdownLabel.Size = UDim2.new(1, 0, 0, 20)
 				DropdownLabel.BackgroundTransparency = 1
 				DropdownLabel.Text = dropdownText
 				DropdownLabel.TextColor3 = Colors.Text
-				DropdownLabel.TextSize = 14
-				DropdownLabel.Font = Enum.Font.Gotham
+				DropdownLabel.TextSize = 15
+				DropdownLabel.Font = Enum.Font.GothamSemibold
 				DropdownLabel.TextXAlignment = Enum.TextXAlignment.Left
 				DropdownLabel.Parent = DropdownContainer
 
+				-- Enhanced dropdown button with better visual feedback
 				local DropdownButton = Instance.new("TextButton")
 				DropdownButton.Name = "DropdownButton"
-				DropdownButton.Size = UDim2.new(1, 0, 0, 25)
+				DropdownButton.Size = UDim2.new(1, 0, 0, 30)
 				DropdownButton.Position = UDim2.new(0, 0, 0, 20)
 				DropdownButton.BackgroundColor3 = Colors.DarkBackground
 				DropdownButton.BorderSizePixel = 0
@@ -1040,58 +1093,60 @@ function DeltaLib:CreateWindow(title, size)
 				DropdownButton.Parent = DropdownContainer
 
 				local DropdownButtonCorner = Instance.new("UICorner")
-				DropdownButtonCorner.CornerRadius = UDim.new(0, 4)
+				DropdownButtonCorner.CornerRadius = UDim.new(0, 6)
 				DropdownButtonCorner.Parent = DropdownButton
 
+				-- Enhanced dropdown border with hover effects
 				local DropdownButtonStroke = Instance.new("UIStroke")
 				DropdownButtonStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 				DropdownButtonStroke.Color = Colors.Border
-				DropdownButtonStroke.Thickness = 1
+				DropdownButtonStroke.Thickness = 2
 				DropdownButtonStroke.Parent = DropdownButton
 
-				local SelectedTextBox = Instance.new("TextBox")
+				-- Dropdown value display with better styling
+				local SelectedTextBox = Instance.new("TextLabel")
 				SelectedTextBox.Name = "SelectedTextBox"
-				SelectedTextBox.Size = UDim2.new(1, -50, 1, 0)
-				SelectedTextBox.Position = UDim2.new(0, 10, 0, 0)
+				SelectedTextBox.Size = UDim2.new(1, -60, 1, 0)
+				SelectedTextBox.Position = UDim2.new(0, 15, 0, 0)
 				SelectedTextBox.BackgroundTransparency = 1
 				SelectedTextBox.Text = default
-				SelectedTextBox.PlaceholderText = "..."
 				SelectedTextBox.TextColor3 = Colors.Text
 				SelectedTextBox.TextSize = 14
 				SelectedTextBox.Font = Enum.Font.Gotham
 				SelectedTextBox.TextXAlignment = Enum.TextXAlignment.Left
-				SelectedTextBox.ClearTextOnFocus = false
-				SelectedTextBox.TextEditable = false
 				SelectedTextBox.Parent = DropdownButton
 
+				-- Enhanced dropdown arrow with better positioning
 				local DropdownArrow = Instance.new("ImageLabel")
 				DropdownArrow.Name = "DropdownArrow"
 				DropdownArrow.Size = UDim2.new(0, 20, 0, 20)
-				DropdownArrow.Position = UDim2.new(1, -25, 0, 2)
+				DropdownArrow.Position = UDim2.new(1, -30, 0.5, -10)
 				DropdownArrow.BackgroundTransparency = 1
 				DropdownArrow.Image = "rbxassetid://6031094670"
 				DropdownArrow.ImageColor3 = Colors.NeonRed
 				DropdownArrow.Rotation = 270
 				DropdownArrow.Parent = DropdownButton
 
+				-- Enhanced dropdown list with better styling
 				local DropdownList = Instance.new("Frame")
 				DropdownList.Name = "DropdownList"
 				DropdownList.Size = UDim2.new(1, 0, 0, 0)
-				DropdownList.Position = UDim2.new(0, 0, 0, 45) 
+				DropdownList.Position = UDim2.new(0, 0, 0, 50)
 				DropdownList.BackgroundColor3 = Colors.DarkBackground
 				DropdownList.BorderSizePixel = 0
-				DropdownList.Visible = false 
-				DropdownList.ZIndex = 100 
+				DropdownList.Visible = false
+				DropdownList.ZIndex = 100
 				DropdownList.Parent = DropdownContainer
 
 				local DropdownListCorner = Instance.new("UICorner")
-				DropdownListCorner.CornerRadius = UDim.new(0, 4)
+				DropdownListCorner.CornerRadius = UDim.new(0, 6)
 				DropdownListCorner.Parent = DropdownList
 
+				-- Enhanced dropdown list border
 				local DropdownListStroke = Instance.new("UIStroke")
 				DropdownListStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 				DropdownListStroke.Color = Colors.NeonRed
-				DropdownListStroke.Thickness = 1
+				DropdownListStroke.Thickness = 2
 				DropdownListStroke.Parent = DropdownList
 
 				local DropdownScrollFrame = Instance.new("ScrollingFrame")
@@ -1141,8 +1196,8 @@ function DeltaLib:CreateWindow(title, size)
 						local optionsHeight = math.min(#options * 30 + 10, 150)
 
 						local listTween = TweenService:Create(
-							DropdownList, 
-							TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), 
+							DropdownList,
+							TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
 							{Size = UDim2.new(1, 0, 0, optionsHeight)}
 						)
 
@@ -1162,8 +1217,8 @@ function DeltaLib:CreateWindow(title, size)
 						end)
 					else
 						local listTween = TweenService:Create(
-							DropdownList, 
-							TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), 
+							DropdownList,
+							TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
 							{Size = UDim2.new(1, 0, 0, 0)}
 						)
 
@@ -1252,16 +1307,16 @@ function DeltaLib:CreateWindow(title, size)
 
 						local mousePos = UserInputService:GetMouseLocation()
 
-						local inDropdownButton = (mousePos.X >= DropdownButton.AbsolutePosition.X and 
+						local inDropdownButton = (mousePos.X >= DropdownButton.AbsolutePosition.X and
 							mousePos.X <= DropdownButton.AbsolutePosition.X + DropdownButton.AbsoluteSize.X and
-							mousePos.Y >= DropdownButton.AbsolutePosition.Y and 
+							mousePos.Y >= DropdownButton.AbsolutePosition.Y and
 							mousePos.Y <= DropdownButton.AbsolutePosition.Y + DropdownButton.AbsoluteSize.Y)
 
 						local inDropdownList = false
 						if DropdownList.Visible then
-							inDropdownList = (mousePos.X >= DropdownList.AbsolutePosition.X and 
+							inDropdownList = (mousePos.X >= DropdownList.AbsolutePosition.X and
 								mousePos.X <= DropdownList.AbsolutePosition.X + DropdownList.AbsoluteSize.X and
-								mousePos.Y >= DropdownList.AbsolutePosition.Y and 
+								mousePos.Y >= DropdownList.AbsolutePosition.Y and
 								mousePos.Y <= DropdownList.AbsolutePosition.Y + DropdownList.AbsoluteSize.Y)
 						end
 
@@ -1333,65 +1388,114 @@ function DeltaLib:CreateWindow(title, size)
 				return DropdownFunctions
 			end
 
-			-- TextBox Creation Function with error handling
-			function Section:AddTextBox(boxText, placeholder, default, callback)
+			-- Enhanced textbox with icon support
+			function Section:AddTextBox(boxText, placeholder, default, callback, iconId)
 				placeholder = placeholder or ""
 				default = default or ""
 				callback = callback or function() end
+				iconId = iconId or "rbxassetid://7733717447" -- Default search icon
 
 				local TextBoxContainer = Instance.new("Frame")
 				TextBoxContainer.Name = "TextBoxContainer"
-				TextBoxContainer.Size = UDim2.new(1, 0, 0, 36) -- Smaller textbox
+				TextBoxContainer.Size = UDim2.new(1, 0, 0, 45)
 				TextBoxContainer.BackgroundTransparency = 1
 				TextBoxContainer.Parent = SectionContent
 
+				-- Enhanced textbox label
 				local TextBoxLabel = Instance.new("TextLabel")
 				TextBoxLabel.Name = "TextBoxLabel"
-				TextBoxLabel.Size = UDim2.new(1, 0, 0, 16) -- Smaller label
+				TextBoxLabel.Size = UDim2.new(1, 0, 0, 20)
 				TextBoxLabel.BackgroundTransparency = 1
 				TextBoxLabel.Text = boxText
 				TextBoxLabel.TextColor3 = Colors.Text
-				TextBoxLabel.TextSize = 12 -- Smaller text size
-				TextBoxLabel.Font = Enum.Font.Gotham
+				TextBoxLabel.TextSize = 15
+				TextBoxLabel.Font = Enum.Font.GothamSemibold
 				TextBoxLabel.TextXAlignment = Enum.TextXAlignment.Left
 				TextBoxLabel.Parent = TextBoxContainer
 
+				-- Enhanced textbox with icon
 				local TextBox = Instance.new("TextBox")
 				TextBox.Name = "TextBox"
-				TextBox.Size = UDim2.new(1, 0, 0, 20) -- Smaller textbox
-				TextBox.Position = UDim2.new(0, 0, 0, 16)
+				TextBox.Size = UDim2.new(1, 0, 0, 25)
+				TextBox.Position = UDim2.new(0, 0, 0, 20)
 				TextBox.BackgroundColor3 = Colors.DarkBackground
 				TextBox.BorderSizePixel = 0
 				TextBox.PlaceholderText = placeholder
 				TextBox.Text = default
 				TextBox.TextColor3 = Colors.Text
 				TextBox.PlaceholderColor3 = Colors.SubText
-				TextBox.TextSize = 12 -- Smaller text size
+				TextBox.TextSize = 14
 				TextBox.Font = Enum.Font.Gotham
 				TextBox.TextXAlignment = Enum.TextXAlignment.Left
 				TextBox.ClearTextOnFocus = false
 				TextBox.Parent = TextBoxContainer
 
+				-- Textbox icon
+				local TextBoxIcon = Instance.new("ImageLabel")
+				TextBoxIcon.Name = "TextBoxIcon"
+				TextBoxIcon.Size = UDim2.new(0, 16, 0, 16)
+				TextBoxIcon.Position = UDim2.new(1, -25, 0.5, -8)
+				TextBoxIcon.BackgroundTransparency = 1
+				TextBoxIcon.Image = iconId
+				TextBoxIcon.ImageColor3 = Colors.SubText
+				TextBoxIcon.Parent = TextBox
+
+				-- Enhanced textbox padding to accommodate icon
 				local TextBoxPadding = Instance.new("UIPadding")
-				TextBoxPadding.PaddingLeft = UDim.new(0, 8) -- Smaller padding
+				TextBoxPadding.PaddingLeft = UDim.new(0, 12)
+				TextBoxPadding.PaddingRight = UDim.new(0, 35) -- Space for icon
 				TextBoxPadding.Parent = TextBox
 
 				local TextBoxCorner = Instance.new("UICorner")
-				TextBoxCorner.CornerRadius = UDim.new(0, 3) -- Smaller corner radius
+				TextBoxCorner.CornerRadius = UDim.new(0, 6)
 				TextBoxCorner.Parent = TextBox
 
-				-- TextBox Logic with error handling
+				-- Enhanced textbox border
+				local TextBoxStroke = Instance.new("UIStroke")
+				TextBoxStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+				TextBoxStroke.Color = Colors.Border
+				TextBoxStroke.Thickness = 2
+				TextBoxStroke.Parent = TextBox
+
+				-- Enhanced focus effects
 				SafeConnect(TextBox.Focused, function()
 					pcall(function()
-						TweenService:Create(TextBox, TweenInfo.new(0.2), {BorderSizePixel = 1, BorderColor3 = Colors.NeonRed}):Play()
+						TweenService:Create(TextBoxStroke, TweenInfo.new(0.2), {
+							Color = Colors.NeonRed
+						}):Play()
+						TweenService:Create(TextBoxIcon, TweenInfo.new(0.2), {
+							ImageColor3 = Colors.NeonRed
+						}):Play()
 					end)
 				end)
 
 				SafeConnect(TextBox.FocusLost, function(enterPressed)
 					pcall(function()
-						TweenService:Create(TextBox, TweenInfo.new(0.2), {BorderSizePixel = 0}):Play()
+						TweenService:Create(TextBoxStroke, TweenInfo.new(0.2), {
+							Color = Colors.Border
+						}):Play()
+						TweenService:Create(TextBoxIcon, TweenInfo.new(0.2), {
+							ImageColor3 = Colors.SubText
+						}):Play()
 						SafeCall(callback, TextBox.Text, enterPressed)
 					end)
+				end)
+
+				-- Hover effects for textbox
+				SafeConnect(TextBox.MouseEnter, function()
+					if not TextBox:IsFocused() then
+						TweenService:Create(TextBoxStroke, TweenInfo.new(0.2), {
+							Color = Colors.SubText
+						}):Play()
+					end
+				end)
+
+				SafeConnect(TextBox.MouseLeave, function()
+					if not TextBox:IsFocused() then
+						TweenService:Create(TextBoxStroke, TweenInfo.new(0.2), {
+							Color = Colors.Border
+						}):Play()
+					end
 				end)
 
 				local TextBoxFunctions = {}
@@ -1405,6 +1509,12 @@ function DeltaLib:CreateWindow(title, size)
 
 				function TextBoxFunctions:GetText()
 					return TextBox.Text
+				end
+
+				function TextBoxFunctions:SetIcon(newIconId)
+					pcall(function()
+						TextBoxIcon.Image = newIconId
+					end)
 				end
 
 				return TextBoxFunctions
