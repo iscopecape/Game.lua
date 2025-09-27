@@ -192,7 +192,7 @@ getgenv().Sleep_For_UGC = {
                 if prompt then
                     tweenToPart(prompt.Parent)
                     safeFireProximity(prompt)
-                    task.wait(0.12)
+                    task.wait(0.1)
                 end
                 bed = findOwnedBed()
             end
@@ -202,7 +202,6 @@ getgenv().Sleep_For_UGC = {
                     if prompt:IsA("ProximityPrompt") and prompt.ObjectText == "Your Bed" and prompt.ActionText == "Sleep" then
                         safeFireProximity(prompt)
                         sleeping = true
-                        break
                     end
                 end
             end
