@@ -45,13 +45,7 @@ getgenv().Sleep_For_UGC = {
     player.CharacterAdded:Connect(ensureCharacter)
 
     if getgenv().Sleep_For_UGC["Auto Reconnect"] then
-        pcall(function()
-            local url = "https://raw.githubusercontent.com/norwaylua/Alwi-script/refs/heads/main/Auto%20Reconnect.lua"
-            local ok, res = pcall(function() return game:HttpGet(url) end)
-            if ok and type(res) == "string" and #res > 10 then
-                pcall(loadstring(res))
-            end
-        end)
+       loadstring(game:HttpGet("https://raw.githubusercontent.com/norwaylua/Alwi-script/refs/heads/main/Auto%20Reconnect.lua"))()
     end
 
     if getgenv().Sleep_For_UGC.AntiAFK then
@@ -133,7 +127,7 @@ getgenv().Sleep_For_UGC = {
                 local ok, pos = pcall(function() return prompt.Parent.Position end)
                 if ok and hrp then
                     local d = (hrp.Position - pos).Magnitude
-                    if d < shortest then
+                    if d then
                         shortest = d
                         closest = prompt
                     end
