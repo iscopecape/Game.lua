@@ -1,174 +1,168 @@
--- search_for_tailor_numbers.lua
--- Non-invasive scanner: searches getgc() closures/constants/upvalues for "activateTailorTable"
--- and collects numeric candidates.
-
-local foundNumbers = {}
-local foundPlaces = {}
-
-local function addCandidate(n, where)
-    if type(n) ~= "number" then return end
-    if not foundNumbers[n] then
-        foundNumbers[n] = true
-        table.insert(foundPlaces, {num = n, where = where})
-        print(("[Found candidate] %d  —  %s"):format(n, where))
-    end
-end
+-- tailor_scanner_to_folder.lua
+-- Scans getgc() for "activateTailorTable" and numeric candidates,
+-- then writes results into workspace.TailorNumbersTxt as StringValue children.
 
 local function safe_pcall(f, ...)
     local ok, a, b, c, d = pcall(f, ...)
-    return ok and {a,b,c,d} or nil
+    return ok, {a,b,c,d}
+end
+
+local foundNumbers = {}   -- map num -> true
+local foundDetails = {}   -- map num -> { details... }
+
+local function addCandidate(n, where)
+    if type(n) ~= "number" then return end
+    if n <= 0 or n > 10000 then return end -- filter obviously unrelated huge numbers
+    n = math.floor(n) -- ensure integer
+    if not foundNumbers[n] then
+        foundNumbers[n] = true
+        foundDetails[n] = {}
+    end
+    table.insert(foundDetails[n], tostring(where))
 end
 
 local function inspectFunction(fn, idx)
     if type(fn) ~= "function" then return end
+    local info = nil
+    local ok, res = safe_pcall(function() return debug.getinfo(fn, "S") end)
+    if ok and res[1] then info = res[1] end
+    local src = (info and info.source) and tostring(info.source) or ("<func gc idx "..tostring(idx)..">")
 
-    -- try to get info to show origin if available
-    local info = debug and debug.getinfo and pcall(debug.getinfo, fn, "S") and debug.getinfo(fn, "S") or nil
-    local src = (info and info.source) and tostring(info.source) or ("<unknown src "..tostring(idx)..">")
-
-    -- check constants (if available)
-    if debug and debug.getconstants then
-        local ok, constants = pcall(debug.getconstants, fn)
-        if ok and type(constants) == "table" then
-            for i, c in ipairs(constants) do
-                if type(c) == "string" and c:find("activateTailorTable", 1, true) then
-                    -- when we find the key string, look around constants for numbers
-                    addCandidate(nil, ("string found in constants idx %d in %s"):format(i, src))
-                    -- search constants for numeric values nearby / in whole constants list
-                    for _, cc in ipairs(constants) do
-                        if type(cc) == "number" then
-                            addCandidate(cc, ("constant number near string in %s"):format(src))
-                        elseif type(cc) == "string" and tonumber(cc) then
-                            addCandidate(tonumber(cc), ("numeric-string constant near string in %s"):format(src))
-                        end
-                    end
-                elseif type(c) == "number" then
-                    -- some games might store numbers as constants near other opcodes
-                    -- keep them as lower-confidence candidates (but still add)
-                    -- filter obviously huge/unlikely numbers (optional)
-                    if c > 0 and c < 10000 then
-                        addCandidate(c, ("constant number in %s"):format(src))
-                    end
-                elseif type(c) == "string" and c:find("activateTailorTable", 1, true) then
-                    addCandidate(nil, ("string constant match in %s"):format(src))
+    -- constants
+    ok, res = safe_pcall(function() return debug.getconstants(fn) end)
+    if ok and type(res[1]) == "table" then
+        for i, c in ipairs(res[1]) do
+            if type(c) == "string" and c:find("activateTailorTable", 1, true) then
+                -- when we find the key string, add nearby numeric constants
+                addCandidate(nil, ("string 'activateTailorTable' found in constants idx %d of %s"):format(i, src))
+                for _, cc in ipairs(res[1]) do
+                    if type(cc) == "number" then addCandidate(cc, ("constant near string in %s"):format(src)) end
+                    if type(cc) == "string" and tonumber(cc) then addCandidate(tonumber(cc), ("numeric-string constant near string in %s"):format(src)) end
                 end
+            elseif type(c) == "number" then
+                addCandidate(c, ("constant number in %s"):format(src))
+            elseif type(c) == "string" and tonumber(c) then
+                addCandidate(tonumber(c), ("constant numeric-string in %s"):format(src))
             end
         end
     end
 
-    -- check upvalues (if available)
-    if debug and debug.getupvalues then
-        local ok, upvals = pcall(debug.getupvalues, fn)
-        if ok and type(upvals) == "table" then
-            for name, value in pairs(upvals) do
-                if type(value) == "string" and value:find("activateTailorTable", 1, true) then
-                    addCandidate(nil, ("upvalue '%s' contains string in %s"):format(name, src))
-                elseif type(value) == "number" then
-                    addCandidate(value, ("upvalue '%s' number in %s"):format(name, src))
-                elseif type(value) == "string" and tonumber(value) then
-                    addCandidate(tonumber(value), ("upvalue '%s' numeric-string in %s"):format(name, src))
-                end
+    -- upvalues
+    ok, res = safe_pcall(function() return debug.getupvalues(fn) end)
+    if ok and type(res[1]) == "table" then
+        for name, value in pairs(res[1]) do
+            if type(value) == "string" and value:find("activateTailorTable", 1, true) then
+                addCandidate(nil, ("upvalue '%s' contains 'activateTailorTable' in %s"):format(tostring(name), src))
+            elseif type(value) == "number" then
+                addCandidate(value, ("upvalue '%s' number in %s"):format(tostring(name), src))
+            elseif type(value) == "string" and tonumber(value) then
+                addCandidate(tonumber(value), ("upvalue '%s' numeric-string in %s"):format(tostring(name), src))
             end
         end
     end
 end
 
-print("=== Starting getgc() scan for 'activateTailorTable' and numeric candidates ===")
+local function scanGetGC()
+    foundNumbers = {}
+    foundDetails = {}
 
-local gc = getgc and getgc() or {}
-for i, v in ipairs(gc) do
-    local t = type(v)
-    if t == "function" then
-        -- inspect
-        local ok, _ = pcall(inspectFunction, v, i)
-        -- ignore errors from inspectFunction
-    elseif t == "table" then
-        -- tables sometimes contain string keys or numbers
-        for k2, v2 in pairs(v) do
-            if type(v2) == "string" and v2:find("activateTailorTable", 1, true) then
-                print(("Found 'activateTailorTable' string in a table (gc idx %d)"):format(i))
-                -- scan table values for numbers
-                for kk, vv in pairs(v) do
-                    if type(vv) == "number" then
-                        addCandidate(vv, ("table value in gc[%d]"):format(i))
-                    elseif type(vv) == "string" and tonumber(vv) then
-                        addCandidate(tonumber(vv), ("table numeric-string in gc[%d]"):format(i))
+    local gc = nil
+    local ok, res = safe_pcall(function() return getgc() end)
+    if not ok or type(res[1]) ~= "table" then
+        warn("getgc() not available in this executor. Aborting scan.")
+        return {}
+    end
+    gc = res[1]
+
+    for i, v in ipairs(gc) do
+        local t = type(v)
+        if t == "function" then
+            pcall(inspectFunction, v, i)
+        elseif t == "table" then
+            -- scan table entries for the target string / numbers
+            for k2, v2 in pairs(v) do
+                if type(v2) == "string" and v2:find("activateTailorTable", 1, true) then
+                    addCandidate(nil, ("found 'activateTailorTable' string in table gc[%d]"):format(i))
+                    for kk, vv in pairs(v) do
+                        if type(vv) == "number" then addCandidate(vv, ("table value in gc[%d]"):format(i)) end
+                        if type(vv) == "string" and tonumber(vv) then addCandidate(tonumber(vv), ("table numeric-string in gc[%d]"):format(i)) end
                     end
-                end
-            elseif type(v2) == "number" then
-                -- still add possible number candidates found in tables
-                if v2 > 0 and v2 < 10000 then
+                elseif type(v2) == "number" then
                     addCandidate(v2, ("table number in gc[%d]"):format(i))
+                elseif type(v2) == "string" and tonumber(v2) then
+                    addCandidate(tonumber(v2), ("table numeric-string in gc[%d]"):format(i))
                 end
             end
-        end
-    elseif t == "string" then
-        if v:find("activateTailorTable", 1, true) then
-            print(("Found standalone string 'activateTailorTable' in getgc() at index %d"):format(i))
-        elseif tonumber(v) then
-            local nv = tonumber(v)
-            if nv > 0 and nv < 10000 then
-                addCandidate(nv, ("standalone numeric-string in gc[%d]"):format(i))
+        elseif t == "string" then
+            if v:find("activateTailorTable", 1, true) then
+                addCandidate(nil, ("standalone string 'activateTailorTable' in gc[%d]"):format(i))
+            elseif tonumber(v) then
+                addCandidate(tonumber(v), ("standalone numeric-string in gc[%d]"):format(i))
             end
         end
     end
+
+    -- build sorted candidate list
+    local candidates = {}
+    for k, _ in pairs(foundNumbers) do
+        table.insert(candidates, k)
+    end
+    table.sort(candidates)
+    return candidates
 end
 
--- collect unique numbers in ascending order
-local candidates = {}
-for k, _ in pairs(foundNumbers) do
-    table.insert(candidates, k)
-end
-table.sort(candidates)
+local function writeResultsToFolder(candidates)
+    if not candidates then candidates = {} end
 
-print("=== Scan complete. Candidates collected: ===")
-if #candidates == 0 then
-    print("No numeric candidates found automatically. The game may be obfuscated.")
-else
-    print(table.concat(candidates, ", "))
-end
+    local targetFolder = workspace:FindFirstChild("TailorNumbersTxt")
+    if not targetFolder then
+        targetFolder = Instance.new("Folder")
+        targetFolder.Name = "TailorNumbersTxt"
+        targetFolder.Parent = workspace
+    end
 
--- convenience: helper to fire the remote with candidate numbers
-local RepStorage = game:GetService("ReplicatedStorage")
-local okRemote = pcall(function() RepStorage:WaitForChild("ReplicaRemoteEvents"):WaitForChild("Replica_ReplicaSignal") end)
-local remote = nil
-if okRemote then
-    remote = RepStorage:WaitForChild("ReplicaRemoteEvents"):WaitForChild("Replica_ReplicaSignal")
-else
-    warn("Could not find Replica_ReplicaSignal remote in ReplicatedStorage.")
-end
+    -- clear old contents
+    for _, child in ipairs(targetFolder:GetChildren()) do
+        child:Destroy()
+    end
 
--- expose to global for easy use
-_G.TailorCandidates = candidates
+    -- create numbers.txt StringValue containing CSV list
+    local numbersTxt = Instance.new("StringValue")
+    numbersTxt.Name = "numbers.txt"
+    numbersTxt.Value = table.concat(candidates, ",")
+    numbersTxt.Parent = targetFolder
 
-_G.FireTailorWith = function(n, delay)
-    if not remote then return warn("Remote not found.") end
-    if type(n) ~= "number" then return warn("Provide a number.") end
-    delay = delay or 0.08
-    spawn(function()
-        pcall(function()
-            remote:FireServer(n, "activateTailorTable")
-        end)
-        task.wait(delay)
-    end)
-end
+    -- create a file for each candidate with details
+    for _, n in ipairs(candidates) do
+        local sv = Instance.new("StringValue")
+        sv.Name = ("candidate_%d.txt"):format(n)
+        local detailsTbl = foundDetails[n] or {}
+        sv.Value = ("Number: %d\nFound at:\n%s"):format(n, table.concat(detailsTbl, "\n"))
+        sv.Parent = targetFolder
+    end
 
-_G.FireAllTailorCandidates = function(delay)
-    if not remote then return warn("Remote not found.") end
-    delay = delay or 0.08
-    spawn(function()
-        for i = #_G.TailorCandidates, 1, -1 do
-            local n = _G.TailorCandidates[i]
-            pcall(function()
-                remote:FireServer(n, "activateTailorTable")
-            end)
-            task.wait(delay)
-        end
-        print("Finished firing candidates.")
-    end)
+    -- also create a small metadata file
+    local meta = Instance.new("StringValue")
+    meta.Name = "README.txt"
+    meta.Value = "This folder contains candidate numbers for activateTailorTable. Use numbers.txt or the candidate_*.txt files."
+    meta.Parent = targetFolder
+
+    print(("Wrote %d candidate(s) to workspace.TailorNumbersTxt"):format(#candidates))
 end
 
-print("Helpers available:")
-print("- _G.TailorCandidates  -- table of candidate numbers (ascending).")
-print("- _G.FireTailorWith(n, delay)  -- fire single candidate (non-blocking).")
-print("- _G.FireAllTailorCandidates(delay)  -- fire all candidates in descending order (non-blocking).")
+-- Run initial scan + write
+local candidates = scanGetGC()
+writeResultsToFolder(candidates)
+
+-- helpers
+_G.RefreshTailorScan = function()
+    local c = scanGetGC()
+    writeResultsToFolder(c)
+    return c
+end
+
+_G.GetTailorCandidates = function()
+    return scanGetGC()
+end
+
+print("Done. Check the workspace.TailorNumbersTxt folder. Use _G.RefreshTailorScan() to rescan/overwrite.")
