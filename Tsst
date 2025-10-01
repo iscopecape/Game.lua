@@ -1,0 +1,174 @@
+-- search_for_tailor_numbers.lua
+-- Non-invasive scanner: searches getgc() closures/constants/upvalues for "activateTailorTable"
+-- and collects numeric candidates.
+
+local foundNumbers = {}
+local foundPlaces = {}
+
+local function addCandidate(n, where)
+    if type(n) ~= "number" then return end
+    if not foundNumbers[n] then
+        foundNumbers[n] = true
+        table.insert(foundPlaces, {num = n, where = where})
+        print(("[Found candidate] %d  —  %s"):format(n, where))
+    end
+end
+
+local function safe_pcall(f, ...)
+    local ok, a, b, c, d = pcall(f, ...)
+    return ok and {a,b,c,d} or nil
+end
+
+local function inspectFunction(fn, idx)
+    if type(fn) ~= "function" then return end
+
+    -- try to get info to show origin if available
+    local info = debug and debug.getinfo and pcall(debug.getinfo, fn, "S") and debug.getinfo(fn, "S") or nil
+    local src = (info and info.source) and tostring(info.source) or ("<unknown src "..tostring(idx)..">")
+
+    -- check constants (if available)
+    if debug and debug.getconstants then
+        local ok, constants = pcall(debug.getconstants, fn)
+        if ok and type(constants) == "table" then
+            for i, c in ipairs(constants) do
+                if type(c) == "string" and c:find("activateTailorTable", 1, true) then
+                    -- when we find the key string, look around constants for numbers
+                    addCandidate(nil, ("string found in constants idx %d in %s"):format(i, src))
+                    -- search constants for numeric values nearby / in whole constants list
+                    for _, cc in ipairs(constants) do
+                        if type(cc) == "number" then
+                            addCandidate(cc, ("constant number near string in %s"):format(src))
+                        elseif type(cc) == "string" and tonumber(cc) then
+                            addCandidate(tonumber(cc), ("numeric-string constant near string in %s"):format(src))
+                        end
+                    end
+                elseif type(c) == "number" then
+                    -- some games might store numbers as constants near other opcodes
+                    -- keep them as lower-confidence candidates (but still add)
+                    -- filter obviously huge/unlikely numbers (optional)
+                    if c > 0 and c < 10000 then
+                        addCandidate(c, ("constant number in %s"):format(src))
+                    end
+                elseif type(c) == "string" and c:find("activateTailorTable", 1, true) then
+                    addCandidate(nil, ("string constant match in %s"):format(src))
+                end
+            end
+        end
+    end
+
+    -- check upvalues (if available)
+    if debug and debug.getupvalues then
+        local ok, upvals = pcall(debug.getupvalues, fn)
+        if ok and type(upvals) == "table" then
+            for name, value in pairs(upvals) do
+                if type(value) == "string" and value:find("activateTailorTable", 1, true) then
+                    addCandidate(nil, ("upvalue '%s' contains string in %s"):format(name, src))
+                elseif type(value) == "number" then
+                    addCandidate(value, ("upvalue '%s' number in %s"):format(name, src))
+                elseif type(value) == "string" and tonumber(value) then
+                    addCandidate(tonumber(value), ("upvalue '%s' numeric-string in %s"):format(name, src))
+                end
+            end
+        end
+    end
+end
+
+print("=== Starting getgc() scan for 'activateTailorTable' and numeric candidates ===")
+
+local gc = getgc and getgc() or {}
+for i, v in ipairs(gc) do
+    local t = type(v)
+    if t == "function" then
+        -- inspect
+        local ok, _ = pcall(inspectFunction, v, i)
+        -- ignore errors from inspectFunction
+    elseif t == "table" then
+        -- tables sometimes contain string keys or numbers
+        for k2, v2 in pairs(v) do
+            if type(v2) == "string" and v2:find("activateTailorTable", 1, true) then
+                print(("Found 'activateTailorTable' string in a table (gc idx %d)"):format(i))
+                -- scan table values for numbers
+                for kk, vv in pairs(v) do
+                    if type(vv) == "number" then
+                        addCandidate(vv, ("table value in gc[%d]"):format(i))
+                    elseif type(vv) == "string" and tonumber(vv) then
+                        addCandidate(tonumber(vv), ("table numeric-string in gc[%d]"):format(i))
+                    end
+                end
+            elseif type(v2) == "number" then
+                -- still add possible number candidates found in tables
+                if v2 > 0 and v2 < 10000 then
+                    addCandidate(v2, ("table number in gc[%d]"):format(i))
+                end
+            end
+        end
+    elseif t == "string" then
+        if v:find("activateTailorTable", 1, true) then
+            print(("Found standalone string 'activateTailorTable' in getgc() at index %d"):format(i))
+        elseif tonumber(v) then
+            local nv = tonumber(v)
+            if nv > 0 and nv < 10000 then
+                addCandidate(nv, ("standalone numeric-string in gc[%d]"):format(i))
+            end
+        end
+    end
+end
+
+-- collect unique numbers in ascending order
+local candidates = {}
+for k, _ in pairs(foundNumbers) do
+    table.insert(candidates, k)
+end
+table.sort(candidates)
+
+print("=== Scan complete. Candidates collected: ===")
+if #candidates == 0 then
+    print("No numeric candidates found automatically. The game may be obfuscated.")
+else
+    print(table.concat(candidates, ", "))
+end
+
+-- convenience: helper to fire the remote with candidate numbers
+local RepStorage = game:GetService("ReplicatedStorage")
+local okRemote = pcall(function() RepStorage:WaitForChild("ReplicaRemoteEvents"):WaitForChild("Replica_ReplicaSignal") end)
+local remote = nil
+if okRemote then
+    remote = RepStorage:WaitForChild("ReplicaRemoteEvents"):WaitForChild("Replica_ReplicaSignal")
+else
+    warn("Could not find Replica_ReplicaSignal remote in ReplicatedStorage.")
+end
+
+-- expose to global for easy use
+_G.TailorCandidates = candidates
+
+_G.FireTailorWith = function(n, delay)
+    if not remote then return warn("Remote not found.") end
+    if type(n) ~= "number" then return warn("Provide a number.") end
+    delay = delay or 0.08
+    spawn(function()
+        pcall(function()
+            remote:FireServer(n, "activateTailorTable")
+        end)
+        task.wait(delay)
+    end)
+end
+
+_G.FireAllTailorCandidates = function(delay)
+    if not remote then return warn("Remote not found.") end
+    delay = delay or 0.08
+    spawn(function()
+        for i = #_G.TailorCandidates, 1, -1 do
+            local n = _G.TailorCandidates[i]
+            pcall(function()
+                remote:FireServer(n, "activateTailorTable")
+            end)
+            task.wait(delay)
+        end
+        print("Finished firing candidates.")
+    end)
+end
+
+print("Helpers available:")
+print("- _G.TailorCandidates  -- table of candidate numbers (ascending).")
+print("- _G.FireTailorWith(n, delay)  -- fire single candidate (non-blocking).")
+print("- _G.FireAllTailorCandidates(delay)  -- fire all candidates in descending order (non-blocking).")
