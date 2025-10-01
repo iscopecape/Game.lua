@@ -1,168 +1,251 @@
--- tailor_scanner_to_folder.lua
--- Scans getgc() for "activateTailorTable" and numeric candidates,
--- then writes results into workspace.TailorNumbersTxt as StringValue children.
+-- tailor_origin_scanner_to_clipboard.lua
+-- Scans accessible places + getgc() to try to find where numbers for "activateTailorTable" come from.
+-- Writes results into workspace.TailorNumbersTxt as StringValue files and copies a summary to clipboard.
 
 local function safe_pcall(f, ...)
-    local ok, a, b, c, d = pcall(f, ...)
-    return ok, {a,b,c,d}
+    local ok, a, b, c = pcall(f, ...)
+    return ok, {a,b,c}
 end
 
-local foundNumbers = {}   -- map num -> true
-local foundDetails = {}   -- map num -> { details... }
-
-local function addCandidate(n, where)
-    if type(n) ~= "number" then return end
-    if n <= 0 or n > 10000 then return end -- filter obviously unrelated huge numbers
-    n = math.floor(n) -- ensure integer
-    if not foundNumbers[n] then
-        foundNumbers[n] = true
-        foundDetails[n] = {}
-    end
-    table.insert(foundDetails[n], tostring(where))
+local function isLikelyNumberString(s)
+    if type(s) ~= "string" then return false end
+    s = s:match("^%s*(.-)%s*$")
+    return tonumber(s) and true or false
 end
 
-local function inspectFunction(fn, idx)
-    if type(fn) ~= "function" then return end
-    local info = nil
-    local ok, res = safe_pcall(function() return debug.getinfo(fn, "S") end)
-    if ok and res[1] then info = res[1] end
-    local src = (info and info.source) and tostring(info.source) or ("<func gc idx "..tostring(idx)..">")
-
-    -- constants
-    ok, res = safe_pcall(function() return debug.getconstants(fn) end)
-    if ok and type(res[1]) == "table" then
-        for i, c in ipairs(res[1]) do
-            if type(c) == "string" and c:find("activateTailorTable", 1, true) then
-                -- when we find the key string, add nearby numeric constants
-                addCandidate(nil, ("string 'activateTailorTable' found in constants idx %d of %s"):format(i, src))
-                for _, cc in ipairs(res[1]) do
-                    if type(cc) == "number" then addCandidate(cc, ("constant near string in %s"):format(src)) end
-                    if type(cc) == "string" and tonumber(cc) then addCandidate(tonumber(cc), ("numeric-string constant near string in %s"):format(src)) end
+local function collectFromInstance(root, results)
+    for _, v in ipairs(root:GetDescendants()) do
+        local nameNum = tonumber(v.Name)
+        if nameNum then
+            results[#results+1] = {num = nameNum, where = ("Name of %s"):format(v:GetFullName())}
+        else
+            for s in tostring(v.Name):gmatch("%d+") do
+                local n = tonumber(s)
+                if n then
+                    results[#results+1] = {num = n, where = ("Number substring in name %s (obj %s)"):format(v.Name, v:GetFullName())}
                 end
-            elseif type(c) == "number" then
-                addCandidate(c, ("constant number in %s"):format(src))
-            elseif type(c) == "string" and tonumber(c) then
-                addCandidate(tonumber(c), ("constant numeric-string in %s"):format(src))
             end
         end
-    end
 
-    -- upvalues
-    ok, res = safe_pcall(function() return debug.getupvalues(fn) end)
-    if ok and type(res[1]) == "table" then
-        for name, value in pairs(res[1]) do
-            if type(value) == "string" and value:find("activateTailorTable", 1, true) then
-                addCandidate(nil, ("upvalue '%s' contains 'activateTailorTable' in %s"):format(tostring(name), src))
-            elseif type(value) == "number" then
-                addCandidate(value, ("upvalue '%s' number in %s"):format(tostring(name), src))
-            elseif type(value) == "string" and tonumber(value) then
-                addCandidate(tonumber(value), ("upvalue '%s' numeric-string in %s"):format(tostring(name), src))
+        local ok, attrs = safe_pcall(function() return v:GetAttributes() end)
+        if ok and attrs and type(attrs[1]) == "table" then
+            for k, val in pairs(attrs[1]) do
+                if type(val) == "number" then
+                    results[#results+1] = {num = val, where = ("Attribute '%s' on %s"):format(tostring(k), v:GetFullName())}
+                elseif type(val) == "string" and tonumber(val) then
+                    results[#results+1] = {num = tonumber(val), where = ("Attribute '%s' (numeric-string) on %s"):format(tostring(k), v:GetFullName())}
+                end
+            end
+        end
+
+        if v:IsA("NumberValue") or v:IsA("IntValue") then
+            results[#results+1] = {num = v.Value, where = ("Value object %s -> %s"):format(v.Name, v:GetFullName())}
+        elseif v:IsA("StringValue") then
+            if isLikelyNumberString(v.Value) then
+                results[#results+1] = {num = tonumber(v.Value), where = ("StringValue %s -> %s"):format(v.Name, v:GetFullName())}
+            end
+        end
+
+        if (v:IsA("ModuleScript") or v:IsA("Script") or v:IsA("LocalScript")) then
+            local ok2, src = safe_pcall(function() return v.Source end)
+            if ok2 and type(src[1]) == "string" then
+                local body = src[1]
+                if body:find("activateTailorTable", 1, true) then
+                    for s in body:gmatch("%d+") do
+                        local n = tonumber(s)
+                        if n then
+                            results[#results+1] = {num = n, where = ("Numeric literal in source of %s (contains 'activateTailorTable')"):format(v:GetFullName())}
+                        end
+                    end
+                else
+                    for s in body:gmatch("%d+") do
+                        local n = tonumber(s)
+                        if n and n > 0 and n < 100000 then
+                            results[#results+1] = {num = n, where = ("Numeric literal in source of %s"):format(v:GetFullName())}
+                        end
+                    end
+                end
             end
         end
     end
 end
 
-local function scanGetGC()
-    foundNumbers = {}
-    foundDetails = {}
-
-    local gc = nil
-    local ok, res = safe_pcall(function() return getgc() end)
-    if not ok or type(res[1]) ~= "table" then
-        warn("getgc() not available in this executor. Aborting scan.")
-        return {}
+local function inspectReplicaRemotes(folder, results)
+    if not folder then return end
+    for _, child in ipairs(folder:GetChildren()) do
+        for _, v in ipairs(child:GetDescendants()) do
+            if tonumber(v.Name) then
+                results[#results+1] = {num = tonumber(v.Name), where = ("Name in %s -> %s"):format(child:GetFullName(), v:GetFullName())}
+            end
+            if v:IsA("NumberValue") or v:IsA("IntValue") then
+                results[#results+1] = {num = v.Value, where = ("Value in %s -> %s"):format(child:GetFullName(), v:GetFullName())}
+            elseif v:IsA("StringValue") and isLikelyNumberString(v.Value) then
+                results[#results+1] = {num = tonumber(v.Value), where = ("StringValue in %s -> %s"):format(child:GetFullName(), v:GetFullName())}
+            end
+            local ok, attrs = safe_pcall(function() return v:GetAttributes() end)
+            if ok and attrs and type(attrs[1]) == "table" then
+                for k, val in pairs(attrs[1]) do
+                    if type(val) == "number" then
+                        results[#results+1] = {num = val, where = ("Attribute '%s' in %s -> %s"):format(tostring(k), child:GetFullName(), v:GetFullName())}
+                    end
+                end
+            end
+        end
     end
-    gc = res[1]
+end
+
+local function scanGetGC(results)
+    if type(getgc) ~= "function" then
+        return
+    end
+    local ok, gc = safe_pcall(function() return getgc() end)
+    if not ok or type(gc[1]) ~= "table" then return end
+    gc = gc[1]
 
     for i, v in ipairs(gc) do
         local t = type(v)
-        if t == "function" then
-            pcall(inspectFunction, v, i)
-        elseif t == "table" then
-            -- scan table entries for the target string / numbers
+        if t == "table" then
             for k2, v2 in pairs(v) do
-                if type(v2) == "string" and v2:find("activateTailorTable", 1, true) then
-                    addCandidate(nil, ("found 'activateTailorTable' string in table gc[%d]"):format(i))
+                if type(v2) == "number" and v2 > 0 and v2 < 100000 then
+                    results[#results+1] = {num = v2, where = ("getgc table[%d] key %s"):format(i, tostring(k2))}
+                elseif type(v2) == "string" and v2:find("activateTailorTable", 1, true) then
                     for kk, vv in pairs(v) do
-                        if type(vv) == "number" then addCandidate(vv, ("table value in gc[%d]"):format(i)) end
-                        if type(vv) == "string" and tonumber(vv) then addCandidate(tonumber(vv), ("table numeric-string in gc[%d]"):format(i)) end
+                        if type(vv) == "number" and vv > 0 and vv < 100000 then
+                            results[#results+1] = {num = vv, where = ("getgc table[%d] near 'activateTailorTable'"):format(i)}
+                        end
                     end
-                elseif type(v2) == "number" then
-                    addCandidate(v2, ("table number in gc[%d]"):format(i))
-                elseif type(v2) == "string" and tonumber(v2) then
-                    addCandidate(tonumber(v2), ("table numeric-string in gc[%d]"):format(i))
+                end
+            end
+        elseif t == "function" then
+            local okC, cons = safe_pcall(function() return debug.getconstants(v) end)
+            if okC and type(cons[1]) == "table" then
+                local ctab = cons[1]
+                local hasKey = false
+                for _, c in ipairs(ctab) do
+                    if type(c) == "string" and c:find("activateTailorTable", 1, true) then
+                        hasKey = true
+                    end
+                end
+                for _, c in ipairs(ctab) do
+                    if type(c) == "number" and c > 0 and c < 100000 then
+                        if hasKey then
+                            results[#results+1] = {num = c, where = ("getgc function constants near 'activateTailorTable' (gc idx %d)"):format(i)}
+                        else
+                            results[#results+1] = {num = c, where = ("getgc function constant (gc idx %d)"):format(i)}
+                        end
+                    elseif type(c) == "string" and tonumber(c) then
+                        results[#results+1] = {num = tonumber(c), where = ("getgc function string-constant numeric (gc idx %d)"):format(i)}
+                    end
+                end
+            end
+            local okU, ups = safe_pcall(function() return debug.getupvalues(v) end)
+            if okU and type(ups[1]) == "table" then
+                for name, value in pairs(ups[1]) do
+                    if type(value) == "number" and value > 0 and value < 100000 then
+                        results[#results+1] = {num = value, where = ("getgc function upvalue '%s' (gc idx %d)"):format(tostring(name), i)}
+                    elseif type(value) == "string" and value:find("activateTailorTable", 1, true) then
+                        results[#results+1] = {num = nil, where = ("getgc function upvalue '%s' contains 'activateTailorTable' (gc idx %d)"):format(tostring(name), i)}
+                    end
                 end
             end
         elseif t == "string" then
             if v:find("activateTailorTable", 1, true) then
-                addCandidate(nil, ("standalone string 'activateTailorTable' in gc[%d]"):format(i))
-            elseif tonumber(v) then
-                addCandidate(tonumber(v), ("standalone numeric-string in gc[%d]"):format(i))
+                results[#results+1] = {num = nil, where = ("getgc string 'activateTailorTable' (gc idx "..i..")")}
+            else
+                local n = tonumber(v)
+                if n and n > 0 and n < 100000 then
+                    results[#results+1] = {num = n, where = ("getgc standalone numeric-string (gc idx "..i..")")}
+                end
             end
         end
     end
-
-    -- build sorted candidate list
-    local candidates = {}
-    for k, _ in pairs(foundNumbers) do
-        table.insert(candidates, k)
-    end
-    table.sort(candidates)
-    return candidates
 end
 
-local function writeResultsToFolder(candidates)
-    if not candidates then candidates = {} end
+-- MAIN
+local results = {}
 
-    local targetFolder = workspace:FindFirstChild("TailorNumbersTxt")
-    if not targetFolder then
-        targetFolder = Instance.new("Folder")
-        targetFolder.Name = "TailorNumbersTxt"
-        targetFolder.Parent = workspace
-    end
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ReplicatedFirst = game:GetService("ReplicatedFirst")
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local localPlayer = Players.LocalPlayer
 
-    -- clear old contents
-    for _, child in ipairs(targetFolder:GetChildren()) do
-        child:Destroy()
-    end
+collectFromInstance(ReplicatedStorage, results)
+collectFromInstance(ReplicatedFirst, results)
+collectFromInstance(Workspace, results)
+if localPlayer then collectFromInstance(localPlayer, results) end
 
-    -- create numbers.txt StringValue containing CSV list
-    local numbersTxt = Instance.new("StringValue")
-    numbersTxt.Name = "numbers.txt"
-    numbersTxt.Value = table.concat(candidates, ",")
-    numbersTxt.Parent = targetFolder
-
-    -- create a file for each candidate with details
-    for _, n in ipairs(candidates) do
-        local sv = Instance.new("StringValue")
-        sv.Name = ("candidate_%d.txt"):format(n)
-        local detailsTbl = foundDetails[n] or {}
-        sv.Value = ("Number: %d\nFound at:\n%s"):format(n, table.concat(detailsTbl, "\n"))
-        sv.Parent = targetFolder
-    end
-
-    -- also create a small metadata file
-    local meta = Instance.new("StringValue")
-    meta.Name = "README.txt"
-    meta.Value = "This folder contains candidate numbers for activateTailorTable. Use numbers.txt or the candidate_*.txt files."
-    meta.Parent = targetFolder
-
-    print(("Wrote %d candidate(s) to workspace.TailorNumbersTxt"):format(#candidates))
+local remoteFolder = ReplicatedStorage:FindFirstChild("ReplicaRemoteEvents")
+if remoteFolder then
+    inspectReplicaRemotes(remoteFolder, results)
 end
 
--- Run initial scan + write
-local candidates = scanGetGC()
-writeResultsToFolder(candidates)
+scanGetGC(results)
 
--- helpers
-_G.RefreshTailorScan = function()
-    local c = scanGetGC()
-    writeResultsToFolder(c)
-    return c
+local foundMap = {}
+local detailsMap = {}
+for _, item in ipairs(results) do
+    if item.num then
+        foundMap[item.num] = true
+        detailsMap[item.num] = detailsMap[item.num] or {}
+        table.insert(detailsMap[item.num], item.where)
+    else
+        detailsMap["__misc__"] = detailsMap["__misc__"] or {}
+        table.insert(detailsMap["__misc__"], item.where)
+    end
 end
 
-_G.GetTailorCandidates = function()
-    return scanGetGC()
+local candidates = {}
+for n, _ in pairs(foundMap) do table.insert(candidates, n) end
+table.sort(candidates)
+
+local targetFolder = Workspace:FindFirstChild("TailorNumbersTxt")
+if not targetFolder then
+    targetFolder = Instance.new("Folder")
+    targetFolder.Name = "TailorNumbersTxt"
+    targetFolder.Parent = Workspace
 end
 
-print("Done. Check the workspace.TailorNumbersTxt folder. Use _G.RefreshTailorScan() to rescan/overwrite.")
+for _, c in ipairs(targetFolder:GetChildren()) do c:Destroy() end
+
+local listSV = Instance.new("StringValue")
+listSV.Name = "numbers.txt"
+listSV.Value = table.concat(candidates, ",")
+listSV.Parent = targetFolder
+
+for _, n in ipairs(candidates) do
+    local sv = Instance.new("StringValue")
+    sv.Name = ("candidate_%d.txt"):format(n)
+    sv.Value = ("Number: %d\nFound at:\n%s"):format(n, table.concat(detailsMap[n] or {}, "\n"))
+    sv.Parent = targetFolder
+end
+
+local misc = Instance.new("StringValue")
+misc.Name = "misc_findings.txt"
+misc.Value = table.concat(detailsMap["__misc__"] or {"(none)"}, "\n")
+misc.Parent = targetFolder
+
+_G.TailorCandidates = candidates
+_G.TailorDetails = detailsMap
+
+-- Build summary and copy to clipboard
+local summaryParts = {}
+summaryParts[#summaryParts+1] = ("Scan complete. Found %d numeric candidate(s)."):format(#candidates)
+summaryParts[#summaryParts+1] = ("Numbers CSV: %s"):format(table.concat(candidates, ","))
+summaryParts[#summaryParts+1] = ""
+summaryParts[#summaryParts+1] = "Details:"
+for _, n in ipairs(candidates) do
+    summaryParts[#summaryParts+1] = ("- %d : %s"):format(n, table.concat(detailsMap[n] or {}, " | "))
+end
+summaryParts[#summaryParts+1] = ""
+summaryParts[#summaryParts+1] = "Misc findings:"
+summaryParts[#summaryParts+1] = table.concat(detailsMap["__misc__"] or {"(none)"}, " | ")
+
+local finalSummary = table.concat(summaryParts, "\n")
+pcall(function() setclipboard(finalSummary) end)
+
+-- Also set clipboard to just CSV (quick paste)
+pcall(function() setclipboard(table.concat(candidates, ",")) end)
+
+-- Also return summary in console (warn uses console but not heavy prints)
+warn("Tailor scanner finished — results copied to clipboard. Check Workspace.TailorNumbersTxt")
