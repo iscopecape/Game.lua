@@ -7,5 +7,6 @@ return {
     ["7419334780"] = "lgau",
     ["7234828678"] = "fucketsjsidjsjs",
     ["7252826714"] = "bcndnxbxbxbxndkkcdkck",
+    ["976805"] = "liamdkskxkskxkxkxidix",
 }
 
