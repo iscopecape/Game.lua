@@ -8,5 +8,6 @@ return {
     ["7234828678"] = "fucketsjsidjsjs",
     ["7252826714"] = "bcndnxbxbxbxndkkcdkck",
     ["976805"] = "liamdkskxkskxkxkxidix",
+    ["4031013932"] = "niggersskid",
 }
 
