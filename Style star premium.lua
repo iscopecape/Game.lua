@@ -11,5 +11,6 @@ return {
     ["4031013932"] = "niggersskid",
     ["3688457656"] = "Lolmaojdksjxx",
     ["8333867705"] = "jgfhjj",
+    ["1014105061"] = "sjdjsjwjfkwjcjs",
 }
 
